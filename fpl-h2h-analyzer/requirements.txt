@@ -1,0 +1,5 @@
+requests
+pandas
+matplotlib
+# plotly # Uncomment if using plotly
+rich
