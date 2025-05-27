@@ -4,6 +4,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LiveBattles from '../components/LiveBattles.jsx';
 import ManagerSelector from '../components/ManagerSelector.jsx';
 import ManagerComparison from '../components/ManagerComparison.jsx';
+import LeagueTable from '../components/LeagueTable.jsx';
+import Analytics from '../components/Analytics.jsx';
 
 function Dashboard() {
   const [tabValue, setTabValue] = useState(0);
@@ -61,8 +63,8 @@ function Dashboard() {
               />
             )}
             {tabValue === 1 && <LiveBattles />}
-            {tabValue === 2 && <Typography>League Table Content - Coming Soon</Typography>}
-            {tabValue === 3 && <Typography>Analytics Content - Coming Soon</Typography>}
+            {tabValue === 2 && <LeagueTable leagueId={LEAGUE_ID} />}
+            {tabValue === 3 && <Analytics leagueId={LEAGUE_ID} />}
           </Box>
         </>
       )}

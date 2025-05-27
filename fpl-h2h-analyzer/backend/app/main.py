@@ -12,6 +12,7 @@ from .services.live_data import LiveDataService
 from .services.h2h_analyzer import H2HAnalyzer
 from .services.enhanced_h2h_analyzer import EnhancedH2HAnalyzer
 from .services.analytics import DifferentialAnalyzer, PredictiveEngine, ChipAnalyzer, PatternRecognition
+from .services.report_generator import ReportGenerator
 from .services.cache import CacheService
 from .websocket.live_updates import WebSocketManager, MessageType, WebSocketMessage, generate_h2h_room_id, generate_league_room_id, generate_live_room_id
 from .config import TARGET_LEAGUE_ID
@@ -27,6 +28,7 @@ differential_analyzer = None
 predictive_engine = None
 chip_analyzer = None
 pattern_recognizer = None
+report_generator = None
 redis_client = None
 cache_service = None
 websocket_manager = None
@@ -34,7 +36,7 @@ websocket_manager = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    global live_data_service, h2h_analyzer, enhanced_h2h_analyzer, differential_analyzer, predictive_engine, chip_analyzer, pattern_recognizer, redis_client, cache_service, websocket_manager
+    global live_data_service, h2h_analyzer, enhanced_h2h_analyzer, differential_analyzer, predictive_engine, chip_analyzer, pattern_recognizer, report_generator, redis_client, cache_service, websocket_manager
     
     try:
         # Initialize Redis connection
@@ -65,6 +67,13 @@ async def lifespan(app: FastAPI):
             chip_analyzer=chip_analyzer,
             pattern_recognition=pattern_recognizer,
             live_data_service=live_data_service
+        )
+        
+        # Initialize report generator
+        report_generator = ReportGenerator(
+            live_data_service=live_data_service,
+            h2h_analyzer=h2h_analyzer,
+            enhanced_h2h_analyzer=enhanced_h2h_analyzer
         )
         
         # Warm cache for better performance
@@ -244,10 +253,20 @@ async def get_live_battles(league_id: int, gameweek: Optional[int] = None):
     try:
         # Get current gameweek if not specified
         if gameweek is None:
-            gameweek = await live_data_service.get_current_gameweek()
+            current_gw_data = await live_data_service.get_current_gameweek()
+            # Handle end of season - cap at GW38
+            gameweek = min(current_gw_data, 38) if isinstance(current_gw_data, int) else 38
+            
+        logger.info(f"Fetching H2H battles for league {league_id}, gameweek {gameweek}")
         
         # Get H2H matches for the gameweek
         matches = await h2h_analyzer.get_h2h_matches(league_id, gameweek)
+        
+        # If no matches found for current gameweek, try the previous one
+        if not matches and gameweek > 1:
+            logger.info(f"No matches found for GW{gameweek}, trying GW{gameweek-1}")
+            gameweek = gameweek - 1
+            matches = await h2h_analyzer.get_h2h_matches(league_id, gameweek)
         
         # Get live data for the gameweek
         live_data = await live_data_service.get_live_gameweek_data(gameweek)
@@ -290,7 +309,8 @@ async def get_live_battles(league_id: int, gameweek: Optional[int] = None):
                     })
                 except Exception as e:
                     print(f"Error processing match {match.get('id')}: {e}")
-                    # Add match with original scores if live calculation fails
+                    # For completed matches, use the final scores from the API
+                    is_completed = gameweek < 38 or match.get('finished', False)
                     live_battles.append({
                         "match_id": match.get('id'),
                         "gameweek": gameweek,
@@ -306,8 +326,7 @@ async def get_live_battles(league_id: int, gameweek: Optional[int] = None):
                             "player_name": match.get('entry_2_player_name'),
                             "score": match.get('entry_2_points', 0)
                         },
-                        "completed": match.get('finished', False),
-                        "error": "Live scores unavailable"
+                        "completed": is_completed
                     })
         
         return {
@@ -794,4 +813,71 @@ async def get_h2h_visualization_data(
         return viz_data
     except Exception as e:
         logger.error(f"Error generating visualization data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/report/generate/h2h/{manager1_id}/{manager2_id}")
+async def generate_h2h_report(
+    manager1_id: int,
+    manager2_id: int,
+    league_id: int = TARGET_LEAGUE_ID,
+    format: str = "json"
+):
+    """Generate H2H season report in specified format."""
+    try:
+        if not report_generator:
+            raise HTTPException(status_code=503, detail="Report generator not initialized")
+        
+        # Validate format
+        if format not in ["json", "csv", "pdf"]:
+            raise HTTPException(status_code=400, detail="Invalid format. Must be json, csv, or pdf")
+        
+        # Generate report
+        result = await report_generator.generate_h2h_season_report(
+            manager1_id=manager1_id,
+            manager2_id=manager2_id,
+            league_id=league_id,
+            output_format=format
+        )
+        
+        # For JSON format, return the data directly
+        if format == "json":
+            return result["data"]
+        
+        # For other formats, return file info
+        return {
+            "status": "success",
+            "file_path": result["file_path"],
+            "format": format,
+            "message": f"Report generated successfully. File saved at: {result['file_path']}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/report/download/{file_path:path}")
+async def download_report(file_path: str):
+    """Download a generated report file."""
+    try:
+        from fastapi.responses import FileResponse
+        import os
+        
+        # Security: ensure file is in reports directory
+        full_path = os.path.abspath(file_path)
+        reports_dir = os.path.abspath("reports")
+        
+        if not full_path.startswith(reports_dir):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        if not os.path.exists(full_path):
+            raise HTTPException(status_code=404, detail="Report file not found")
+        
+        return FileResponse(
+            path=full_path,
+            filename=os.path.basename(full_path),
+            media_type="application/octet-stream"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error downloading report: {e}")
         raise HTTPException(status_code=500, detail=str(e))

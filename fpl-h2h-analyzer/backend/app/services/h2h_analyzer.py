@@ -535,25 +535,23 @@ class H2HAnalyzer:
         # Fetch all pages of matches
         while True:
             try:
-                url = f"leagues-h2h-matches/league/{league_id}/"
+                endpoint = f"leagues-h2h-matches/league/{league_id}"
+                params = None
                 if page > 1:
-                    url += f"?page={page}"
+                    params = {"page": page}
                     
-                data = await self.live_data_service._fetch_data_with_caching(url)
+                data = await self.live_data_service._fetch_data_with_caching(endpoint, params)
                 
                 if not data or 'results' not in data:
                     break
                     
                 matches = data.get('results', [])
                 
-                # Filter by gameweek if specified
-                if gameweek:
-                    matches = [m for m in matches if m.get('event') == gameweek]
-                    
+                # Add all matches from this page first
                 all_matches.extend(matches)
                 
                 # Check if there are more pages
-                if not data.get('has_next', False) or gameweek:
+                if not data.get('has_next', False):
                     break
                     
                 page += 1
@@ -561,6 +559,10 @@ class H2HAnalyzer:
             except Exception as e:
                 print(f"Error fetching H2H matches page {page}: {e}")
                 break
+        
+        # Filter by gameweek if specified (after fetching all pages)
+        if gameweek:
+            all_matches = [m for m in all_matches if m.get('event') == gameweek]
                 
         return all_matches
 

@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Grid, CircularProgress, Alert, Button, Chip } from '@mui/material';
+import { 
+  Box, 
+  Typography, 
+  Grid, 
+  CircularProgress, 
+  Alert, 
+  Button, 
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
+} from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import WifiIcon from '@mui/icons-material/Wifi';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
@@ -15,21 +27,36 @@ function LiveBattles() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentGameweek, setCurrentGameweek] = useState(null);
+  const [selectedGameweek, setSelectedGameweek] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [realtimeUpdates, setRealtimeUpdates] = useState(0);
 
-  const fetchBattles = async () => {
+  const fetchBattles = async (gameweek = null) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Get current gameweek
-      const gwData = await fplApi.getCurrentGameweek();
-      setCurrentGameweek(gwData.gameweek);
+      // Get current gameweek if not already set
+      if (!currentGameweek) {
+        const gwData = await fplApi.getCurrentGameweek();
+        setCurrentGameweek(gwData.gameweek);
+        if (!selectedGameweek) {
+          setSelectedGameweek(gwData.gameweek);
+        }
+      }
 
-      // Get live battles
-      const battlesData = await fplApi.getLiveBattles(DEFAULT_LEAGUE_ID);
+      // Get live battles for specific gameweek
+      const targetGameweek = gameweek || selectedGameweek;
+      const url = targetGameweek ? 
+        `http://localhost:8000/api/h2h/live-battles/${DEFAULT_LEAGUE_ID}?gameweek=${targetGameweek}` :
+        `http://localhost:8000/api/h2h/live-battles/${DEFAULT_LEAGUE_ID}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch battles: ${response.status}`);
+      }
+      const battlesData = await response.json();
       
       // Transform data for BattleCard component
       const transformedBattles = battlesData.battles.map(battle => ({
@@ -124,6 +151,13 @@ function LiveBattles() {
     setRealtimeUpdates(prev => prev + 1);
   }, []);
 
+  // Handle gameweek change
+  const handleGameweekChange = (event) => {
+    const newGameweek = event.target.value;
+    setSelectedGameweek(newGameweek);
+    fetchBattles(newGameweek);
+  };
+
   useEffect(() => {
     fetchBattles();
 
@@ -179,10 +213,26 @@ function LiveBattles() {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <div>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
+          <Box display="flex" alignItems="center" gap={2} mb={1}>
             <Typography variant="h5">
-              Live H2H Battles - Gameweek {currentGameweek}
+              H2H Battles
             </Typography>
+            {currentGameweek && (
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Gameweek</InputLabel>
+                <Select
+                  value={selectedGameweek || currentGameweek}
+                  label="Gameweek"
+                  onChange={handleGameweekChange}
+                >
+                  {Array.from({ length: 38 }, (_, i) => i + 1).map(gw => (
+                    <MenuItem key={gw} value={gw}>
+                      GW {gw}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <Chip
               icon={isConnected ? <WifiIcon /> : <WifiOffIcon />}
               label={isConnected ? 'Live' : 'Offline'}
