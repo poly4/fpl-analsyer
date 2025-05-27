@@ -12,6 +12,7 @@ from .services.live_data_v2 import LiveDataService
 from .services.h2h_analyzer import H2HAnalyzer
 from .services.enhanced_h2h_analyzer import EnhancedH2HAnalyzer
 from .services.analytics import DifferentialAnalyzer, PredictiveEngine, ChipAnalyzer, PatternRecognition
+from .services.advanced_analytics import AdvancedAnalyticsService
 from .services.report_generator import ReportGenerator
 from .services.cache import CacheService
 from .websocket.live_updates import WebSocketManager, MessageType, WebSocketMessage, generate_h2h_room_id, generate_league_room_id, generate_live_room_id
@@ -28,6 +29,7 @@ differential_analyzer = None
 predictive_engine = None
 chip_analyzer = None
 pattern_recognizer = None
+advanced_analytics = None
 report_generator = None
 redis_client = None
 cache_service = None
@@ -36,7 +38,7 @@ websocket_manager = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    global live_data_service, h2h_analyzer, enhanced_h2h_analyzer, differential_analyzer, predictive_engine, chip_analyzer, pattern_recognizer, report_generator, redis_client, cache_service, websocket_manager
+    global live_data_service, h2h_analyzer, enhanced_h2h_analyzer, differential_analyzer, predictive_engine, chip_analyzer, pattern_recognizer, advanced_analytics, report_generator, redis_client, cache_service, websocket_manager
     
     try:
         # Initialize Redis connection
@@ -68,6 +70,9 @@ async def lifespan(app: FastAPI):
             pattern_recognition=pattern_recognizer,
             live_data_service=live_data_service
         )
+        
+        # Initialize advanced analytics service
+        advanced_analytics = AdvancedAnalyticsService(live_data_service)
         
         # Initialize report generator
         report_generator = ReportGenerator(
@@ -1020,3 +1025,146 @@ async def download_report(file_path: str):
     except Exception as e:
         logger.error(f"Error downloading report: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Advanced Analytics Endpoints
+
+@app.get("/api/analytics/v2/h2h/comprehensive/{manager1_id}/{manager2_id}")
+async def get_comprehensive_h2h_analysis_v2(
+    manager1_id: int,
+    manager2_id: int,
+    gameweek: Optional[int] = None,
+    include_predictions: bool = True,
+    include_patterns: bool = True,
+    include_live: bool = True
+):
+    """
+    Get comprehensive H2H analysis using all advanced analytics modules.
+    Includes differential impact, historical patterns, predictions, transfer analysis,
+    chip strategy, and live tracking.
+    """
+    try:
+        if not advanced_analytics:
+            raise HTTPException(status_code=503, detail="Advanced analytics service not initialized")
+        
+        analysis = await advanced_analytics.get_comprehensive_h2h_analysis(
+            manager1_id,
+            manager2_id,
+            gameweek,
+            include_predictions,
+            include_patterns,
+            include_live
+        )
+        
+        return analysis
+    except Exception as e:
+        logger.error(f"Error in comprehensive H2H analysis v2: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/v2/differential-impact/{manager1_id}/{manager2_id}")
+async def get_differential_impact_analysis(
+    manager1_id: int,
+    manager2_id: int,
+    gameweek: Optional[int] = None
+):
+    """Get differential impact analysis between two managers."""
+    try:
+        if not advanced_analytics:
+            raise HTTPException(status_code=503, detail="Advanced analytics service not initialized")
+        
+        analysis = await advanced_analytics.get_differential_analysis(
+            manager1_id,
+            manager2_id,
+            gameweek
+        )
+        
+        return analysis
+    except Exception as e:
+        logger.error(f"Error in differential impact analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/v2/transfer-roi/{manager_id}")
+async def get_transfer_roi_analysis(manager_id: int):
+    """Get comprehensive transfer ROI analysis for a manager."""
+    try:
+        if not advanced_analytics:
+            raise HTTPException(status_code=503, detail="Advanced analytics service not initialized")
+        
+        analysis = await advanced_analytics.get_transfer_roi_analysis(manager_id)
+        
+        return analysis
+    except Exception as e:
+        logger.error(f"Error in transfer ROI analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/v2/live-match/{manager1_id}/{manager2_id}")
+async def get_live_match_state(
+    manager1_id: int,
+    manager2_id: int,
+    gameweek: Optional[int] = None
+):
+    """Get current live match state with provisional bonus and projections."""
+    try:
+        if not advanced_analytics:
+            raise HTTPException(status_code=503, detail="Advanced analytics service not initialized")
+        
+        state = await advanced_analytics.get_live_match_state(
+            manager1_id,
+            manager2_id,
+            gameweek
+        )
+        
+        return state
+    except Exception as e:
+        logger.error(f"Error getting live match state: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.websocket("/ws/analytics/live-tracking/{manager1_id}/{manager2_id}")
+async def websocket_live_tracking(
+    websocket: WebSocket,
+    manager1_id: int,
+    manager2_id: int
+):
+    """WebSocket endpoint for continuous live match tracking."""
+    await websocket.accept()
+    tracking_id = None
+    
+    try:
+        # Define callback to send updates
+        async def send_update(track_id: str):
+            try:
+                state = await advanced_analytics.get_live_match_state(
+                    manager1_id,
+                    manager2_id
+                )
+                await websocket.send_json({
+                    "type": "live_update",
+                    "data": state
+                })
+            except Exception as e:
+                logger.error(f"Error sending live update: {e}")
+        
+        # Start tracking
+        tracking_id = await advanced_analytics.start_live_tracking(
+            manager1_id,
+            manager2_id,
+            send_update
+        )
+        
+        # Keep connection alive
+        while True:
+            try:
+                data = await websocket.receive_text()
+                if data == "ping":
+                    await websocket.send_text("pong")
+            except WebSocketDisconnect:
+                break
+                
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+    finally:
+        if tracking_id:
+            await advanced_analytics.stop_live_tracking(tracking_id)
+        try:
+            await websocket.close()
+        except:
+            pass

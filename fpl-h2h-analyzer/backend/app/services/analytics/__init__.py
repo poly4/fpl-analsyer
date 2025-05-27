@@ -1,21 +1,20 @@
 """
-Analytics package for FPL H2H Analyzer.
-
-This package contains specialized analytics modules for advanced FPL analysis:
-- DifferentialAnalyzer: Point swing contribution and differential analysis
-- PredictiveEngine: ML-based match outcome predictions
-- ChipAnalyzer: Strategic chip usage recommendations
-- PatternRecognition: Historical pattern analysis
+Advanced H2H Analytics Engine
+Comprehensive analytics modules for FPL H2H analysis
 """
 
-from .differential_analyzer import DifferentialAnalyzer
-from .predictive_engine import PredictiveEngine
-from .chip_analyzer import ChipAnalyzer
-from .pattern_recognition import PatternRecognition
+from .differential_impact import DifferentialImpactCalculator
+from .historical_patterns import HistoricalPatternAnalyzer
+from .predictive_scoring import PredictiveScoringEngine
+from .transfer_strategy import TransferStrategyAnalyzer
+from .live_match_tracker import LiveMatchTracker
+from .chip_strategy import ChipStrategyAnalyzer
 
 __all__ = [
-    'DifferentialAnalyzer',
-    'PredictiveEngine',
-    'ChipAnalyzer',
-    'PatternRecognition'
+    'DifferentialImpactCalculator',
+    'HistoricalPatternAnalyzer',
+    'PredictiveScoringEngine',
+    'TransferStrategyAnalyzer',
+    'LiveMatchTracker',
+    'ChipStrategyAnalyzer'
 ]
