@@ -352,7 +352,7 @@ class H2HAnalyzer:
     async def _get_recent_transfers(self, manager_id: int, limit: int = 5) -> List[Dict[str, Any]]:
         """Get recent transfers for a manager."""
         try:
-            history = await self.live_data_service._fetch_data(f"entry/{manager_id}/history")
+            history = await self.live_data_service.get_manager_history(manager_id)
             bootstrap = await self.get_bootstrap_data()
             players_dict = {p['id']: p for p in bootstrap.get('elements', [])}
             
@@ -539,7 +539,7 @@ class H2HAnalyzer:
                 if page > 1:
                     url += f"?page={page}"
                     
-                data = await self.live_data_service._fetch_data(url)
+                data = await self.live_data_service._fetch_data_with_caching(url)
                 
                 if not data or 'results' not in data:
                     break
@@ -590,7 +590,7 @@ class H2HAnalyzer:
                 
         return None
 
-    async def get_h2h_standings(self, league_id: int) -> H2HLeagueStandings:
+    async def get_h2h_standings(self, league_id: int) -> Dict[str, Any]:
         """
         Get H2H league standings.
         
@@ -598,39 +598,6 @@ class H2HAnalyzer:
             league_id: H2H league ID
             
         Returns:
-            H2HLeagueStandings object
+            Dict with league and standings data from FPL API
         """
-        data = await self.live_data_service.get_h2h_standings(league_id)
-        
-        # Extract league info and standings
-        league_info = data.get('league', {})
-        standings_data = data.get('standings', {})
-        
-        # Convert entries to H2HLeagueEntry objects
-        entries = []
-        for result in standings_data.get('results', []):
-            entries.append(H2HLeagueEntry(
-                id=result.get('id', 0),
-                entry=result.get('entry', 0),
-                entry_name=result.get('entry_name', ''),
-                player_name=result.get('player_name', ''),
-                points_for=result.get('points_for', 0),
-                points_against=result.get('points_against', 0),
-                played=result.get('played', 0),
-                win=result.get('win', 0),
-                draw=result.get('draw', 0),
-                loss=result.get('loss', 0),
-                total=result.get('total', 0),
-                rank=result.get('rank', 0),
-                last_rank=result.get('last_rank', 0),
-                rank_sort=result.get('rank_sort', 0),
-                division=result.get('division', 0)
-            ))
-        
-        return H2HLeagueStandings(
-            league_id=league_info.get('id', league_id),
-            league_name=league_info.get('name', ''),
-            entries=entries,
-            has_next=standings_data.get('has_next', False),
-            page=standings_data.get('page', 1)
-        )
+        return await self.live_data_service.get_h2h_standings(league_id)
