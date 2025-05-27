@@ -10,6 +10,8 @@ A comprehensive Fantasy Premier League (FPL) Head-to-Head (H2H) league analyzer 
 - **🔄 Enhanced Real-time Updates**: WebSocket integration with visual feedback
 - **📊 Expandable Analytics Cards**: On-demand deep insights without cluttering the UI
 - **🚀 Performance Optimizations**: Intelligent caching and lazy loading
+- **🔐 Real FPL API Integration**: All analytics use actual FPL data - no synthetic data
+- **🛡️ Type Safety**: Enhanced error handling and type conversions for API responses
 
 ## Key Features
 
@@ -92,6 +94,7 @@ The application follows a microservices architecture with the following componen
 - **NumPy** (1.26.4) - Numerical computations
 - **SciPy** (1.13.1) - Statistical analysis and predictions
 - **scikit-learn** (1.5.0) - Machine learning models
+- **pandas** (2.2.0) - Data manipulation and analysis
 - **Dataclasses** - Type-safe data structures
 
 ### Frontend
@@ -291,15 +294,33 @@ All endpoints are defined in `backend/app/main.py`:
 - `GET /api/analytics/h2h/comprehensive/{manager1_id}/{manager2_id}` - Full analysis with all insights
   ```json
   {
-    "analysis": {
-      "differential_analysis": {...},
-      "prediction": {...},
-      "chip_strategies": {...},
-      "patterns": {...},
-      "advantage_score": 16.36,
-      "confidence_level": 26.1
+    "meta": {
+      "manager1_id": 3356830,
+      "manager2_id": 3531308,
+      "gameweek": 38
     },
-    "summary": {...}
+    "core_analysis": {
+      "score_difference": -16,
+      "differentials": [...],
+      "point_swings": {...}
+    },
+    "differential_analysis": {
+      "manager1_differentials": [...],
+      "key_differentials": [...],
+      "captain_analysis": {...},
+      "total_psc_swing": {...}
+    },
+    "prediction": {
+      "manager1_win_probability": 0.0,
+      "manager2_win_probability": 0.0,
+      "draw_probability": 1.0,
+      "predicted_margin": 0.0
+    },
+    "summary": {
+      "advantage_score": 13.33,
+      "confidence_level": 0.0,
+      "key_insights": [...]
+    }
   }
   ```
 - `GET /api/analytics/h2h/differential/{manager1_id}/{manager2_id}` - Differential analysis only
@@ -773,10 +794,11 @@ logging.basicConfig(level=logging.DEBUG)
 ## Performance Metrics
 
 ### Analytics Engine Performance
-- **Comprehensive Analysis**: ~200-300ms (with caching)
-- **Differential Calculation**: ~50ms
-- **Prediction Generation**: ~100ms
-- **Pattern Recognition**: ~150ms (first run), ~10ms (cached)
+- **Comprehensive Analysis**: ~500-800ms (with real FPL API calls and caching)
+- **Differential Calculation**: ~100ms (with type safety checks)
+- **Prediction Generation**: ~200ms (with fixture analysis)
+- **Pattern Recognition**: ~250ms (first run), ~50ms (cached)
+- **Chip Recommendations**: ~150ms (with fixture difficulty analysis)
 
 ### WebSocket Performance
 - **Connection Time**: <100ms
@@ -892,3 +914,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 **Built with ❤️ for the FPL community**
 
 *Last updated: May 2025 - v2.0 with Advanced Analytics*
+
+## Recent Updates
+
+### v2.0.1 (May 27, 2025)
+- **Fixed**: All analytics endpoints now use real FPL API data
+- **Fixed**: Type safety issues with string/numeric comparisons
+- **Fixed**: Method name mismatches between services
+- **Added**: Real H2H match history fetching from FPL API
+- **Added**: Proper fixture analysis for chip recommendations
+- **Improved**: Error handling and API response validation

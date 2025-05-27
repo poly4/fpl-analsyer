@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta
+import asyncio
 import json
 import os
 import logging
@@ -123,6 +124,54 @@ class EnhancedH2HAnalyzer:
         except Exception as e:
             logger.error(f"Error caching analysis {cache_key}: {str(e)}")
     
+    async def _fetch_battle_data(self, manager1_id: int, manager2_id: int, gameweek: int) -> Dict[str, Any]:
+        """
+        Fetch all required data for battle analysis.
+        
+        Args:
+            manager1_id: First manager's ID
+            manager2_id: Second manager's ID
+            gameweek: Gameweek number
+            
+        Returns:
+            Dict containing all battle data
+        """
+        try:
+            # Fetch all required data in parallel for better performance
+            results = await asyncio.gather(
+                self.live_data_service.get_manager_info(manager1_id),
+                self.live_data_service.get_manager_info(manager2_id),
+                self.live_data_service.get_manager_history(manager1_id),
+                self.live_data_service.get_manager_history(manager2_id),
+                self.live_data_service.get_manager_picks(manager1_id, gameweek),
+                self.live_data_service.get_manager_picks(manager2_id, gameweek),
+                self.live_data_service.get_bootstrap_static(),
+                self.live_data_service.get_live_gameweek_data(gameweek),
+                self.live_data_service.get_fixtures(event=gameweek),
+                return_exceptions=True
+            )
+            
+            # Check for errors
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f"Error fetching data at index {i}: {result}")
+                    return None
+                    
+            return {
+                "manager1_info": results[0],
+                "manager2_info": results[1],
+                "manager1_history": results[2],
+                "manager2_history": results[3],
+                "manager1_picks": results[4],
+                "manager2_picks": results[5],
+                "bootstrap_data": results[6],
+                "live_data": results[7],
+                "fixtures": results[8]
+            }
+        except Exception as e:
+            logger.error(f"Error in _fetch_battle_data: {e}")
+            return None
+    
     async def analyze_battle_comprehensive(
         self, 
         manager1_id: int, 
@@ -131,14 +180,6 @@ class EnhancedH2HAnalyzer:
     ) -> Optional[Dict[str, Any]]:
         """
         Perform comprehensive H2H battle analysis combining all analytics modules.
-        
-        Args:
-            manager1_id: First manager's ID
-            manager2_id: Second manager's ID
-            gameweek: Gameweek number to analyze
-            
-        Returns:
-            Comprehensive analysis dictionary or None if analysis fails
         """
         # Check cache first
         cache_key = self._generate_cache_key(manager1_id, manager2_id, gameweek)
@@ -149,50 +190,65 @@ class EnhancedH2HAnalyzer:
         logger.info(f"Starting comprehensive analysis for managers {manager1_id} vs {manager2_id}, GW{gameweek}")
         
         try:
-            # Core Analysis
+            # Fetch all required data
+            battle_data = await self._fetch_battle_data(manager1_id, manager2_id, gameweek)
+            if not battle_data:
+                logger.error("Failed to fetch battle data")
+                return None
+            
+            # Extract data
+            manager1_info = battle_data["manager1_info"]
+            manager2_info = battle_data["manager2_info"]
+            manager1_history = battle_data["manager1_history"]
+            manager2_history = battle_data["manager2_history"]
+            manager1_picks = battle_data["manager1_picks"]
+            manager2_picks = battle_data["manager2_picks"]
+            bootstrap_data = battle_data["bootstrap_data"]
+            live_data = battle_data["live_data"]
+            fixtures = battle_data["fixtures"]
+            
+            # Core H2H analysis
             core_analysis = await self.h2h_analyzer.analyze_battle(manager1_id, manager2_id, gameweek)
             if not core_analysis:
                 logger.error("Core analysis failed")
                 return None
             
-            # Fetch supporting data for advanced analytics
-            bootstrap_data = await self.live_data_service.get_bootstrap_static()
-            live_gw_data = await self.live_data_service.get_live_gameweek_data(gameweek)
+            # Run all analytics modules
+            try:
+                # 1. Differential Analysis
+                differential_results = await self.differential_analyzer.analyze_differentials(
+                    manager1_picks_data=manager1_picks,
+                    manager2_picks_data=manager2_picks,
+                    live_gameweek_data=live_data,
+                    bootstrap_static_data=bootstrap_data,
+                    manager1_id=manager1_id,
+                    manager2_id=manager2_id,
+                    gameweek=gameweek
+                )
+            except Exception as e:
+                logger.error(f"Differential analysis failed: {e}")
+                differential_results = {"error": str(e)}
             
-            # Fetch manager-specific data
-            manager1_history = await self.live_data_service.get_manager_history(manager1_id)
-            manager2_history = await self.live_data_service.get_manager_history(manager2_id)
-            
-            manager1_picks = await self.live_data_service.get_manager_picks(manager1_id, gameweek)
-            manager2_picks = await self.live_data_service.get_manager_picks(manager2_id, gameweek)
-            
-            # Fetch fixture data for the current gameweek
-            fixture_data = await self.live_data_service.get_fixtures(event=gameweek)
-            
-            # Advanced Analytics
-            
-            # 1. Differential Analysis
-            differential_results = await self.differential_analyzer.analyze_differentials(
-                manager1_picks_data=manager1_picks,
-                manager2_picks_data=manager2_picks,
-                live_gameweek_data=live_gw_data,
-                bootstrap_static_data=bootstrap_data,
-                manager1_id=manager1_id,
-                manager2_id=manager2_id,
-                gameweek=gameweek
-            )
-            
-            # 2. Predictive Analysis
-            prediction_results = await self.predictive_engine.predict_match_outcome(
-                manager1_id=manager1_id,
-                manager2_id=manager2_id,
-                manager1_history=manager1_history,
-                manager2_history=manager2_history,
-                current_gw_picks_m1=manager1_picks,
-                current_gw_picks_m2=manager2_picks,
-                fixture_data=fixture_data,
-                gameweek=gameweek
-            )
+            try:
+                # 2. Predictive Analysis
+                prediction_results = await self.predictive_engine.predict_match_outcome(
+                    manager1_id=manager1_id,
+                    manager2_id=manager2_id,
+                    manager1_history=manager1_history,
+                    manager2_history=manager2_history,
+                    current_gw_picks_m1=manager1_picks,
+                    current_gw_picks_m2=manager2_picks,
+                    fixture_data=fixtures,
+                    gameweek=gameweek
+                )
+            except Exception as e:
+                logger.error(f"Prediction failed: {e}")
+                prediction_results = {
+                    "win_probability_m1": 0.5,
+                    "win_probability_m2": 0.5,
+                    "confidence": "low",
+                    "error": str(e)
+                }
             
             # 3. Chip Strategy Analysis
             # Prepare H2H context for chip recommendations
@@ -206,7 +262,7 @@ class EnhancedH2HAnalyzer:
             chip_strategy_m1 = await self.chip_analyzer.get_chip_recommendations(
                 manager_id=manager1_id,
                 manager_history=manager1_history,
-                fixture_data=fixture_data,
+                fixture_data=fixtures,
                 gameweek=gameweek,
                 h2h_context=h2h_context
             )
@@ -222,7 +278,7 @@ class EnhancedH2HAnalyzer:
             chip_strategy_m2 = await self.chip_analyzer.get_chip_recommendations(
                 manager_id=manager2_id,
                 manager_history=manager2_history,
-                fixture_data=fixture_data,
+                fixture_data=fixtures,
                 gameweek=gameweek,
                 h2h_context=h2h_context_m2
             )
@@ -255,48 +311,28 @@ class EnhancedH2HAnalyzer:
                 historical_h2h_matches=h2h_historical
             )
             
-            # Calculate summary metrics
-            advantage_score, confidence_level = self._calculate_summary_metrics(
-                core_analysis, differential_results, prediction_results, 
-                chip_strategy_m1, chip_strategy_m2, patterns_m1, patterns_m2
-            )
-            
-            # Compile comprehensive results
-            comprehensive_analysis = {
+            # Build comprehensive response
+            analysis = {
                 "meta": {
                     "manager1_id": manager1_id,
                     "manager2_id": manager2_id,
                     "gameweek": gameweek,
-                    "analysis_timestamp": datetime.utcnow().isoformat(),
-                    "cache_key": cache_key
+                    "timestamp": datetime.utcnow().isoformat()
                 },
                 "core_analysis": core_analysis,
                 "differential_analysis": differential_results,
                 "prediction": prediction_results,
-                "chip_strategies": {
-                    "manager1": chip_strategy_m1,
-                    "manager2": chip_strategy_m2
-                },
-                "patterns": {
-                    "manager1": patterns_m1,
-                    "manager2": patterns_m2,
-                    "h2h": h2h_patterns
-                },
                 "summary": {
-                    "advantage_score": advantage_score,
-                    "confidence_level": confidence_level,
-                    "key_insights": self._extract_key_insights(
-                        differential_results, prediction_results, 
-                        chip_strategy_m1, chip_strategy_m2, h2h_patterns
-                    )
+                    "advantage_score": self._calculate_advantage_score(core_analysis, differential_results),
+                    "confidence_level": self._calculate_confidence_level(prediction_results),
+                    "key_insights": self._generate_key_insights(core_analysis, differential_results, prediction_results)
                 }
             }
             
             # Cache the results
-            await self._cache_analysis(cache_key, comprehensive_analysis)
+            await self._cache_analysis(cache_key, analysis)
             
-            logger.info(f"Comprehensive analysis completed for {cache_key}")
-            return comprehensive_analysis
+            return analysis
             
         except Exception as e:
             logger.error(f"Error in comprehensive analysis: {str(e)}", exc_info=True)
@@ -460,13 +496,100 @@ class EnhancedH2HAnalyzer:
         manager1_history: Dict[str, Any],
         manager2_history: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """Extract historical H2H matches from manager histories."""
-        # This is a simplified implementation
-        # In reality, you'd need to cross-reference league matches
+        """
+        Get historical H2H matches between two managers from FPL API.
+        
+        This fetches actual H2H match data from the FPL API by finding
+        leagues where both managers compete against each other.
+        
+        Args:
+            manager1_id: First manager's ID
+            manager2_id: Second manager's ID
+            manager1_history: Manager 1's historical data
+            manager2_history: Manager 2's historical data
+            
+        Returns:
+            List of H2H match dictionaries with actual FPL data
+        """
         h2h_matches = []
         
-        # For now, return empty list as this requires more complex logic
-        # to match up historical gameweeks where they faced each other
+        try:
+            # Get the leagues that both managers are in
+            # The manager history contains league information
+            m1_leagues = manager1_history.get('leagues', {})
+            m2_leagues = manager2_history.get('leagues', {})
+            
+            # Find H2H leagues that both managers are in
+            m1_h2h_leagues = m1_leagues.get('h2h', []) if m1_leagues else []
+            m2_h2h_leagues = m2_leagues.get('h2h', []) if m2_leagues else []
+            
+            # Find common H2H leagues
+            m1_h2h_ids = {league['id'] for league in m1_h2h_leagues if 'id' in league}
+            m2_h2h_ids = {league['id'] for league in m2_h2h_leagues if 'id' in league}
+            common_h2h_leagues = m1_h2h_ids.intersection(m2_h2h_ids)
+            
+            if not common_h2h_leagues:
+                logger.info(f"No common H2H leagues found between managers {manager1_id} and {manager2_id}")
+                return h2h_matches
+            
+            # For each common H2H league, fetch the matches
+            for league_id in common_h2h_leagues:
+                try:
+                    # Use the FPL API endpoint for H2H matches
+                    endpoint = f"leagues-h2h-matches/league/{league_id}/"
+                    league_matches_data = await self.live_data_service._fetch_data(endpoint)
+                    
+                    if not league_matches_data:
+                        continue
+                    
+                    # The API returns paginated results
+                    matches = league_matches_data.get('matches', league_matches_data.get('results', []))
+                    
+                    # Filter for matches between our two managers
+                    for match in matches:
+                        entry_1 = match.get('entry_1_entry')
+                        entry_2 = match.get('entry_2_entry')
+                        
+                        # Check if this match is between our two managers
+                        if (entry_1 == manager1_id and entry_2 == manager2_id) or \
+                           (entry_1 == manager2_id and entry_2 == manager1_id):
+                            
+                            # Normalize the match data
+                            if entry_1 == manager1_id:
+                                h2h_match = {
+                                    'gameweek': match.get('event'),
+                                    'manager1_score': match.get('entry_1_points', 0),
+                                    'manager2_score': match.get('entry_2_points', 0),
+                                    'finished': match.get('finished', False),
+                                    'league_id': league_id,
+                                    'match_id': match.get('id')
+                                }
+                            else:
+                                h2h_match = {
+                                    'gameweek': match.get('event'),
+                                    'manager1_score': match.get('entry_2_points', 0),
+                                    'manager2_score': match.get('entry_1_points', 0),
+                                    'finished': match.get('finished', False),
+                                    'league_id': league_id,
+                                    'match_id': match.get('id')
+                                }
+                            
+                            h2h_matches.append(h2h_match)
+                    
+                except Exception as e:
+                    logger.warning(f"Error fetching H2H matches for league {league_id}: {e}")
+                    continue
+            
+            # Sort matches by gameweek
+            h2h_matches.sort(key=lambda x: x.get('gameweek', 0))
+            
+            logger.info(f"Found {len(h2h_matches)} actual H2H matches between managers {manager1_id} and {manager2_id}")
+            
+        except Exception as e:
+            logger.error(f"Error in _get_historical_h2h_matches: {e}")
+            # Return empty list if there's an error
+            return []
+        
         return h2h_matches
     
     def _get_chip_alert(
@@ -510,3 +633,61 @@ class EnhancedH2HAnalyzer:
             return f"Manager {leader} dominating with {confidence} confidence"
         else:
             return f"Manager {leader} ahead but anything can happen"
+    
+    def _calculate_advantage_score(self, core_analysis: Dict, differential_results: Dict) -> float:
+        """Calculate overall advantage score."""
+        score = 0.0
+        
+        # Score difference component
+        if core_analysis:
+            score_diff = abs(core_analysis.get("score_difference", 0))
+            score += min(score_diff / 2, 20)  # Max 20 points from score diff
+        
+        # Differential component
+        if differential_results and "total_psc_swing" in differential_results:
+            psc_swing = differential_results["total_psc_swing"]
+            net_advantage = psc_swing.get("net_advantage", 0)
+            score += min(abs(net_advantage) / 3, 15)  # Max 15 points from differentials
+        
+        return round(score, 2)
+
+    def _calculate_confidence_level(self, prediction_results: Dict) -> float:
+        """Calculate confidence level in the analysis."""
+        if not prediction_results or "error" in prediction_results:
+            return 25.0
+        
+        # Base confidence on prediction probability spread
+        win_prob_m1 = prediction_results.get("manager1_win_probability", 0.5)
+        win_prob_m2 = prediction_results.get("manager2_win_probability", 0.5)
+        
+        prob_diff = abs(win_prob_m1 - win_prob_m2)
+        confidence = min(prob_diff * 100, 95)  # Max 95% confidence
+        
+        return round(confidence, 1)
+
+    def _generate_key_insights(self, core_analysis: Dict, differential_results: Dict, prediction_results: Dict) -> List[str]:
+        """Generate key insights from the analysis."""
+        insights = []
+        
+        # Score insight
+        if core_analysis:
+            score_diff = core_analysis.get("score_difference", 0)
+            if abs(score_diff) > 20:
+                leader_id = core_analysis.get("leader")
+                insights.append(f"Manager {leader_id} has a significant {abs(score_diff)} point lead")
+        
+        # Differential insight
+        if differential_results and "key_differentials" in differential_results:
+            key_diffs = differential_results["key_differentials"]
+            if key_diffs:
+                top_diff = key_diffs[0]
+                insights.append(f"Key differential: {top_diff.get('name', 'Unknown')} with PSC of {top_diff.get('psc', 0)}")
+        
+        # Prediction insight
+        if prediction_results and "predicted_winner" in prediction_results:
+            winner = prediction_results["predicted_winner"]
+            prob = prediction_results.get("win_probability", 0)
+            if prob > 0.7:
+                insights.append(f"Manager {winner} is strongly favored to win ({prob*100:.0f}% probability)")
+        
+        return insights[:3]  # Return top 3 insights

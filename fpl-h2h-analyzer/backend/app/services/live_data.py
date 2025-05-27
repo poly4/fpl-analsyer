@@ -393,6 +393,109 @@ class LiveDataService:
                 "api_reachable": False
             }
     
+    async def get_fixtures(self, event: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """
+        Get fixture data for a specific gameweek or all fixtures.
+        
+        Args:
+            event: Optional gameweek number
+            
+        Returns:
+            Fixture data or None if error
+        """
+        endpoint = "fixtures"
+        params = {"event": event} if event else None
+        return await self._fetch_data_with_caching(endpoint, params)
+
+    async def get_manager_transfers(self, manager_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get manager's transfer history.
+        
+        Args:
+            manager_id: FPL manager ID
+            
+        Returns:
+            Transfer history data or None if error
+        """
+        return await self._fetch_data_with_caching(f"entry/{manager_id}/transfers")
+
+    async def get_h2h_standings(self, league_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get H2H league standings.
+        
+        Args:
+            league_id: H2H league ID
+            
+        Returns:
+            H2H league standings data or None if error
+        """
+        return await self._fetch_data_with_caching(f"leagues-h2h/{league_id}/standings")
+
+    async def get_h2h_matches(self, league_id: int, gameweek: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Get H2H matches for a league.
+        
+        Args:
+            league_id: H2H league ID
+            gameweek: Optional gameweek filter
+            
+        Returns:
+            List of H2H matches
+        """
+        params = {"event": gameweek} if gameweek else None
+        data = await self._fetch_data_with_caching(f"leagues-h2h-matches/league/{league_id}", params)
+        
+        if data and "results" in data:
+            return data["results"]
+        return []
+
+    async def invalidate_cache(self, pattern: Optional[str] = None):
+        """Invalidate cache entries matching pattern."""
+        cache_path = Path(self.cache_dir)
+        if pattern:
+            for cache_file in cache_path.glob(f"*{pattern}*"):
+                try:
+                    cache_file.unlink()
+                    logger.info(f"Invalidated cache file: {cache_file}")
+                except Exception as e:
+                    logger.error(f"Error deleting cache file {cache_file}: {e}")
+        else:
+            # Clear all cache
+            for cache_file in cache_path.glob("*.json"):
+                try:
+                    cache_file.unlink()
+                except Exception as e:
+                    logger.error(f"Error deleting cache file {cache_file}: {e}")
+
+    async def warm_cache(self, league_id: int):
+        """Pre-warm cache with frequently accessed data."""
+        logger.info(f"Warming cache for league {league_id}")
+        
+        # Get current gameweek first
+        bootstrap = await self.get_bootstrap_static()
+        if bootstrap:
+            current_gw = await self.get_current_gameweek()
+            if current_gw:
+                # Warm up common endpoints
+                await self.get_h2h_standings(league_id)
+                await self.get_h2h_matches(league_id, current_gw)
+                await self.get_live_gameweek_data(current_gw)
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics."""
+        cache_path = Path(self.cache_dir)
+        cache_files = list(cache_path.glob("*.json"))
+        
+        total_size = sum(f.stat().st_size for f in cache_files)
+        
+        return {
+            "cache_dir": str(cache_path),
+            "total_files": len(cache_files),
+            "total_size_mb": round(total_size / (1024 * 1024), 2),
+            "oldest_file": min(cache_files, key=lambda f: f.stat().st_mtime).name if cache_files else None,
+            "newest_file": max(cache_files, key=lambda f: f.stat().st_mtime).name if cache_files else None
+        }
+
     async def close(self):
         """Close the HTTP client connection."""
         await self.client.aclose()

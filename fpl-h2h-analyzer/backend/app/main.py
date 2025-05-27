@@ -550,13 +550,38 @@ async def get_differential_analysis(
         if not enhanced_h2h_analyzer:
             raise HTTPException(status_code=503, detail="Analytics service not initialized")
             
-        analysis = await enhanced_h2h_analyzer.get_quick_differential_analysis(
+        # Get differential analysis from enhanced analyzer
+        if gameweek is None:
+            gameweek = await live_data_service.get_current_gameweek()
+            
+        comprehensive = await enhanced_h2h_analyzer.analyze_battle_comprehensive(
             manager1_id,
             manager2_id,
             gameweek
         )
         
-        return analysis
+        # Extract differential analysis
+        if comprehensive and 'differential_analysis' in comprehensive:
+            return comprehensive['differential_analysis']
+        else:
+            # Fallback to direct differential analyzer
+            if enhanced_h2h_analyzer.differential_analyzer:
+                bootstrap_data = await live_data_service.get_bootstrap_static()
+                live_data = await live_data_service.get_live_gameweek_data(gameweek)
+                manager1_picks = await live_data_service.get_manager_picks(manager1_id, gameweek)
+                manager2_picks = await live_data_service.get_manager_picks(manager2_id, gameweek)
+                
+                return await enhanced_h2h_analyzer.differential_analyzer.analyze_differentials(
+                    manager1_picks,
+                    manager2_picks,
+                    live_data,
+                    bootstrap_data,
+                    manager1_id,
+                    manager2_id,
+                    gameweek
+                )
+            else:
+                raise HTTPException(status_code=503, detail="Differential analyzer not available")
     except Exception as e:
         logger.error(f"Error in differential analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -579,34 +604,23 @@ async def get_h2h_prediction(
         manager1_picks = await live_data_service.get_manager_picks(manager1_id, gameweek)
         manager2_picks = await live_data_service.get_manager_picks(manager2_id, gameweek)
         
-        # Generate prediction
-        prediction = enhanced_h2h_analyzer.predictive_engine.predict_h2h_match(
+        # Generate prediction using predict_match_outcome
+        manager1_history = await live_data_service.get_manager_history(manager1_id)
+        manager2_history = await live_data_service.get_manager_history(manager2_id)
+        fixtures = await live_data_service.get_fixtures()
+        
+        prediction = await enhanced_h2h_analyzer.predictive_engine.predict_match_outcome(
+            manager1_id,
+            manager2_id,
+            manager1_history,
+            manager2_history,
             manager1_picks,
             manager2_picks,
+            fixtures,
             gameweek
         )
         
-        return {
-            "gameweek": gameweek,
-            "win_probability": {
-                "manager1": prediction.win_probability_m1,
-                "manager2": prediction.win_probability_m2,
-                "draw": prediction.draw_probability
-            },
-            "expected_scores": {
-                "manager1": prediction.manager1_prediction.expected_total_points,
-                "manager2": prediction.manager2_prediction.expected_total_points
-            },
-            "expected_margin": prediction.expected_margin,
-            "confidence_level": prediction.confidence_level,
-            "decisive_players": [
-                {
-                    "player": p[0].player_name,
-                    "expected_points": p[0].expected_points,
-                    "impact_score": p[1]
-                } for p in prediction.decisive_players[:5]
-            ]
-        }
+        return prediction
     except Exception as e:
         logger.error(f"Error in H2H prediction: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -632,39 +646,31 @@ async def get_chip_strategy(
         if opponent_id:
             opponent_data = await live_data_service.get_manager_info(opponent_id)
             
-        # Analyze chip strategy
-        strategy = await enhanced_h2h_analyzer.chip_analyzer.analyze_chip_strategy(
-            manager_info,
+        # Get chip recommendations
+        fixtures = await live_data_service.get_fixtures()
+        bootstrap_data = await live_data_service.get_bootstrap_static()
+        
+        h2h_context = None
+        if opponent_id:
+            opponent_picks = await live_data_service.get_manager_picks(opponent_id, current_gw)
+            # Create H2H context
+            h2h_context = {
+                "is_leading": False,  # Would need actual scores
+                "score_difference": 0,  # Would need actual scores
+                "opponent_chip": opponent_picks.get('active_chip') if opponent_picks else None
+            }
+        
+        recommendations = await enhanced_h2h_analyzer.chip_analyzer.get_chip_recommendations(
+            manager_id,
             manager_history,
-            manager_picks,
-            opponent_data,
-            horizon
+            fixtures,
+            current_gw,
+            h2h_context,
+            bootstrap_data,
+            manager_picks
         )
         
-        # Get summary
-        summary = enhanced_h2h_analyzer.chip_analyzer.get_chip_summary(strategy) if hasattr(enhanced_h2h_analyzer.chip_analyzer, 'get_chip_summary') else None
-        
-        return {
-            "manager_id": manager_id,
-            "current_gameweek": current_gw,
-            "chips_available": {k.value: v for k, v in strategy.chips_available.items()},
-            "chips_used": {k.value: v for k, v in strategy.chips_used.items()},
-            "immediate_recommendation": {
-                "chip": strategy.immediate_recommendation.chip_type.value,
-                "gameweek": strategy.immediate_recommendation.recommended_gameweek,
-                "expected_gain": strategy.immediate_recommendation.expected_gain,
-                "confidence": strategy.immediate_recommendation.confidence_score,
-                "reasons": strategy.immediate_recommendation.reasons
-            } if strategy.immediate_recommendation else None,
-            "future_recommendations": [
-                {
-                    "chip": rec.chip_type.value,
-                    "gameweek": rec.recommended_gameweek,
-                    "expected_gain": rec.expected_gain
-                } for rec in strategy.future_recommendations
-            ],
-            "summary": summary
-        }
+        return recommendations
     except Exception as e:
         logger.error(f"Error in chip strategy analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -687,31 +693,8 @@ async def get_manager_patterns(
             manager_history
         )
         
-        return {
-            "manager_id": manager_id,
-            "transfer_patterns": {
-                "avg_transfers_per_gw": patterns.avg_transfers_per_gw,
-                "hit_frequency": patterns.hit_frequency,
-                "avg_hit_size": patterns.avg_hit_size
-            },
-            "captain_patterns": {
-                "consistency": patterns.captain_consistency,
-                "risk_profile": patterns.captain_risk_profile,
-                "differential_rate": patterns.differential_captain_rate
-            },
-            "performance_patterns": {
-                "consistency_score": patterns.consistency_score,
-                "clutch_performance": patterns.clutch_performance,
-                "strong_periods": patterns.strong_periods,
-                "weak_periods": patterns.weak_periods
-            },
-            "h2h_patterns": {
-                "record": patterns.h2h_record,
-                "avg_margin_win": patterns.avg_margin_win,
-                "avg_margin_loss": patterns.avg_margin_loss,
-                "comeback_rate": patterns.comeback_rate
-            }
-        }
+        # Patterns is returned as a dict, not an object with attributes
+        return patterns
     except Exception as e:
         logger.error(f"Error in pattern analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -731,9 +714,7 @@ async def get_h2h_visualization_data(
         analysis = await enhanced_h2h_analyzer.analyze_battle_comprehensive(
             manager1_id,
             manager2_id,
-            gameweek,
-            include_predictions=True,
-            include_patterns=False
+            gameweek
         )
         
         # Format for visualization

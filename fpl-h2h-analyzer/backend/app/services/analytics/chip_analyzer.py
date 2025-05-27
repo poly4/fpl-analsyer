@@ -233,7 +233,9 @@ class ChipAnalyzer:
         manager_history: Dict[str, Any],
         fixture_data: List[Dict[str, Any]],
         gameweek: int,
-        h2h_context: Optional[Dict[str, Any]] = None
+        h2h_context: Optional[Dict[str, Any]] = None,
+        bootstrap_data: Optional[Dict[str, Any]] = None,
+        manager_picks_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Get strategic chip recommendations for a manager.
@@ -264,8 +266,8 @@ class ChipAnalyzer:
         
         recommendations = []
         
-        # Analyze fixture landscape
-        fixture_analysis = self._analyze_fixtures(fixture_data, gameweek)
+        # Analyze fixture landscape with real data
+        fixture_analysis = self._analyze_fixtures(fixture_data, gameweek, bootstrap_data)
         
         # Get current team data (simplified - would need actual picks data)
         # For now, we'll make recommendations based on general principles
@@ -276,6 +278,14 @@ class ChipAnalyzer:
                 gameweek, fixture_analysis, h2h_context
             )
             if bb_recommendation:
+                # Add estimated value if we have picks data
+                if manager_picks_data and bootstrap_data:
+                    bb_value = await self._estimate_bench_boost_value(
+                        manager_id, gameweek, manager_picks_data,
+                        fixture_analysis.get('fixture_difficulties', {}),
+                        bootstrap_data
+                    )
+                    bb_recommendation['estimated_gain'] = bb_value
                 recommendations.append(bb_recommendation)
         
         # Triple Captain recommendation
@@ -284,6 +294,14 @@ class ChipAnalyzer:
                 gameweek, fixture_analysis, h2h_context
             )
             if tc_recommendation:
+                # Add estimated value if we have picks data
+                if manager_picks_data and bootstrap_data:
+                    tc_value = await self._estimate_triple_captain_value(
+                        manager_id, gameweek, manager_picks_data,
+                        fixture_analysis.get('fixture_difficulties', {}),
+                        bootstrap_data
+                    )
+                    tc_recommendation['estimated_gain'] = tc_value
                 recommendations.append(tc_recommendation)
         
         # Free Hit recommendation
@@ -327,30 +345,93 @@ class ChipAnalyzer:
     def _analyze_fixtures(
         self,
         fixture_data: List[Dict[str, Any]],
-        current_gameweek: int
+        current_gameweek: int,
+        bootstrap_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Analyze fixture landscape for chip opportunities."""
-        # Simplified fixture analysis
-        # In reality, would parse fixture_data to identify DGWs, BGWs, fixture swings
-        
+        """Analyze fixture landscape for chip opportunities using real FPL data."""
         analysis = {
             "dgw_teams": [],  # Teams with double gameweeks
             "bgw_teams": [],  # Teams with blank gameweeks
             "easy_runs": [],  # Teams with easy fixture runs
             "hard_runs": [],  # Teams with difficult fixture runs
+            "fixture_difficulties": {},  # Team ID to difficulty mapping
             "summary": ""
         }
         
-        # Check for special gameweeks (simplified)
-        # GW32-35 often have DGWs, GW33 often has BGW
-        if 32 <= current_gameweek <= 35:
-            analysis["dgw_teams"] = ["MCI", "CHE", "ARS"]  # Example
-            analysis["summary"] = "Potential double gameweek opportunities"
-        elif current_gameweek == 33:
-            analysis["bgw_teams"] = ["LIV", "MUN", "TOT"]  # Example
-            analysis["summary"] = "Blank gameweek for several teams"
-        else:
-            analysis["summary"] = "Standard gameweek fixtures"
+        if not fixture_data:
+            analysis["summary"] = "No fixture data available"
+            return analysis
+        
+        # Get team names mapping
+        teams_dict = {}
+        if bootstrap_data:
+            teams_dict = {t['id']: t for t in bootstrap_data.get('teams', [])}
+        
+        # Analyze fixtures for current and upcoming gameweeks
+        team_fixtures = {}  # team_id: list of fixtures
+        
+        for fixture in fixture_data:
+            event = fixture.get('event')
+            if not event or event < current_gameweek or event > current_gameweek + 5:
+                continue
+            
+            # Skip if fixture is finished for future analysis
+            if event > current_gameweek and fixture.get('finished', False):
+                continue
+            
+            team_h = fixture.get('team_h')
+            team_a = fixture.get('team_a')
+            
+            if team_h not in team_fixtures:
+                team_fixtures[team_h] = []
+            if team_a not in team_fixtures:
+                team_fixtures[team_a] = []
+            
+            team_fixtures[team_h].append({
+                'event': event,
+                'opponent': team_a,
+                'is_home': True,
+                'difficulty': fixture.get('team_h_difficulty', 3)
+            })
+            
+            team_fixtures[team_a].append({
+                'event': event,
+                'opponent': team_h,
+                'is_home': False,
+                'difficulty': fixture.get('team_a_difficulty', 3)
+            })
+        
+        # Identify DGWs and BGWs for current gameweek
+        for team_id, fixtures in team_fixtures.items():
+            team_name = teams_dict.get(team_id, {}).get('short_name', f'Team{team_id}')
+            current_gw_fixtures = [f for f in fixtures if f['event'] == current_gameweek]
+            
+            if len(current_gw_fixtures) > 1:
+                analysis["dgw_teams"].append(team_name)
+            elif len(current_gw_fixtures) == 0:
+                analysis["bgw_teams"].append(team_name)
+            
+            # Calculate average difficulty for next 3 gameweeks
+            next_fixtures = [f for f in fixtures if current_gameweek <= f['event'] <= current_gameweek + 2]
+            if next_fixtures:
+                avg_difficulty = sum(f['difficulty'] for f in next_fixtures) / len(next_fixtures)
+                analysis["fixture_difficulties"][team_id] = avg_difficulty
+                
+                if avg_difficulty <= 2.3:
+                    analysis["easy_runs"].append(team_name)
+                elif avg_difficulty >= 3.7:
+                    analysis["hard_runs"].append(team_name)
+        
+        # Generate summary
+        summaries = []
+        if analysis["dgw_teams"]:
+            summaries.append(f"Double gameweek for {', '.join(analysis['dgw_teams'][:3])}")
+        if analysis["bgw_teams"]:
+            summaries.append(f"Blank gameweek for {', '.join(analysis['bgw_teams'][:3])}")
+        if analysis["easy_runs"]:
+            summaries.append(f"Easy fixtures for {', '.join(analysis['easy_runs'][:3])}")
+        
+        analysis["summary"] = "; ".join(summaries) if summaries else "Standard gameweek fixtures"
         
         return analysis
     

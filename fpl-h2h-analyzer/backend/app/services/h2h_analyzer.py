@@ -23,11 +23,15 @@ class H2HAnalyzer:
             'wildcard': 1.0  # Wildcard - no multiplier
         }
 
-    async def get_bootstrap_data(self) -> Dict[str, Any]:
+    async def get_bootstrap_static(self) -> Dict[str, Any]:
         """Get cached bootstrap data with player and team information."""
         if not self._bootstrap_cache:
             self._bootstrap_cache = await self.live_data_service.get_bootstrap_static()
         return self._bootstrap_cache
+    
+    async def get_bootstrap_data(self) -> Dict[str, Any]:
+        """Alias for get_bootstrap_static for backward compatibility."""
+        return await self.get_bootstrap_static()
 
     async def analyze_battle(self, manager1_id: int, manager2_id: int, gameweek: int) -> Dict[str, Any]:
         """
@@ -514,44 +518,77 @@ class H2HAnalyzer:
         
         return bench_points
 
-    async def get_h2h_matches(self, league_id: int, gameweek: Optional[int] = None) -> List[H2HMatch]:
+    async def get_h2h_matches(self, league_id: int, gameweek: Optional[int] = None) -> List[Dict[str, Any]]:
         """
-        Get H2H matches for a league.
+        Get H2H matches for a league from the FPL API.
         
         Args:
             league_id: H2H league ID
             gameweek: Optional gameweek filter
             
         Returns:
-            List of H2HMatch objects
+            List of H2H match dictionaries
         """
-        matches = await self.live_data_service.get_h2h_matches(league_id, gameweek)
+        all_matches = []
+        page = 1
         
-        # Convert to H2HMatch objects
-        h2h_matches = []
+        # Fetch all pages of matches
+        while True:
+            try:
+                url = f"leagues-h2h-matches/league/{league_id}/"
+                if page > 1:
+                    url += f"?page={page}"
+                    
+                data = await self.live_data_service._fetch_data(url)
+                
+                if not data or 'results' not in data:
+                    break
+                    
+                matches = data.get('results', [])
+                
+                # Filter by gameweek if specified
+                if gameweek:
+                    matches = [m for m in matches if m.get('event') == gameweek]
+                    
+                all_matches.extend(matches)
+                
+                # Check if there are more pages
+                if not data.get('has_next', False) or gameweek:
+                    break
+                    
+                page += 1
+                
+            except Exception as e:
+                print(f"Error fetching H2H matches page {page}: {e}")
+                break
+                
+        return all_matches
+
+    async def get_current_h2h_match(self, league_id: int, manager1_id: int, manager2_id: int, gameweek: int) -> Optional[Dict[str, Any]]:
+        """
+        Get the current H2H match between two managers in a specific gameweek.
+        
+        Args:
+            league_id: H2H league ID
+            manager1_id: First manager's ID
+            manager2_id: Second manager's ID
+            gameweek: Gameweek number
+            
+        Returns:
+            H2H match data if found, None otherwise
+        """
+        matches = await self.get_h2h_matches(league_id, gameweek)
+        
+        # Find the match between these two managers
         for match in matches:
-            h2h_matches.append(H2HMatch(
-                id=match.get('id', 0),
-                event=match.get('event', 0),
-                entry_1_entry=match.get('entry_1_entry', 0),
-                entry_1_name=match.get('entry_1_name', ''),
-                entry_1_player_name=match.get('entry_1_player_name', ''),
-                entry_1_points=match.get('entry_1_points', 0),
-                entry_1_win=match.get('entry_1_win', 0),
-                entry_1_draw=match.get('entry_1_draw', 0),
-                entry_1_loss=match.get('entry_1_loss', 0),
-                entry_2_entry=match.get('entry_2_entry', 0),
-                entry_2_name=match.get('entry_2_name', ''),
-                entry_2_player_name=match.get('entry_2_player_name', ''),
-                entry_2_points=match.get('entry_2_points', 0),
-                entry_2_win=match.get('entry_2_win', 0),
-                entry_2_draw=match.get('entry_2_draw', 0),
-                entry_2_loss=match.get('entry_2_loss', 0),
-                is_knockout=match.get('is_knockout', False),
-                finished=match.get('finished', False)
-            ))
-        
-        return h2h_matches
+            entry_1 = match.get('entry_1_entry')
+            entry_2 = match.get('entry_2_entry')
+            
+            if (entry_1 == manager1_id and entry_2 == manager2_id) or \
+               (entry_1 == manager2_id and entry_2 == manager1_id):
+                return match
+                
+        return None
 
     async def get_h2h_standings(self, league_id: int) -> H2HLeagueStandings:
         """

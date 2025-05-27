@@ -226,15 +226,22 @@ class DifferentialAnalyzer:
         
         # Injury/availability risk
         chance_of_playing = player_static.get('chance_of_playing_next_round')
-        if chance_of_playing is not None and chance_of_playing < 100:
-            if chance_of_playing < 25:
-                risk_score += 2.0
-            elif chance_of_playing < 50:
-                risk_score += 1.5
-            elif chance_of_playing < 75:
-                risk_score += 1.0
-            else:
-                risk_score += 0.5
+        if chance_of_playing is not None:
+            # Ensure it's a number
+            try:
+                chance_val = float(chance_of_playing) if chance_of_playing else 100
+            except (ValueError, TypeError):
+                chance_val = 100
+            
+            if chance_val < 100:
+                if chance_val < 25:
+                    risk_score += 2.0
+                elif chance_val < 50:
+                    risk_score += 1.5
+                elif chance_val < 75:
+                    risk_score += 1.0
+                else:
+                    risk_score += 0.5
         
         # Form risk (if form is dropping)
         form = float(player_static.get('form', 0))
@@ -254,9 +261,14 @@ class DifferentialAnalyzer:
         
         # Team strength (simplified - in reality would check upcoming fixtures)
         team_strength = team.get('strength', 3)
-        if team_strength <= 2:  # Weaker team
+        try:
+            strength_val = int(team_strength) if team_strength else 3
+        except (ValueError, TypeError):
+            strength_val = 3
+            
+        if strength_val <= 2:  # Weaker team
             risk_score += 0.5
-        elif team_strength >= 4:  # Stronger team
+        elif strength_val >= 4:  # Stronger team
             risk_score -= 0.5
         
         # Ensure score is within bounds
@@ -308,11 +320,21 @@ class DifferentialAnalyzer:
                 reward_score += 0.25
         
         # Penalty taker bonus
-        if player_static.get('penalties_order', 0) == 1:
+        penalties_order = player_static.get('penalties_order', 0)
+        try:
+            pen_order = int(penalties_order) if penalties_order else 0
+        except (ValueError, TypeError):
+            pen_order = 0
+        if pen_order == 1:
             reward_score += 0.25
         
         # Set piece taker bonus
-        if player_static.get('corners_and_indirect_freekicks_order', 0) == 1:
+        corners_order = player_static.get('corners_and_indirect_freekicks_order', 0)
+        try:
+            corner_order = int(corners_order) if corners_order else 0
+        except (ValueError, TypeError):
+            corner_order = 0
+        if corner_order == 1:
             reward_score += 0.15
         
         # Historical max score bonus (explosive potential)
@@ -320,7 +342,15 @@ class DifferentialAnalyzer:
         # For now, use a simple heuristic based on total points
         total_points = player_static.get('total_points', 0)
         event_points = player_static.get('event_points', 0)
-        if total_points > 0 and event_points > 15:  # Had a huge haul recently
+        
+        try:
+            total_pts = float(total_points) if total_points else 0
+            event_pts = float(event_points) if event_points else 0
+        except (ValueError, TypeError):
+            total_pts = 0
+            event_pts = 0
+            
+        if total_pts > 0 and event_pts > 15:  # Had a huge haul recently
             reward_score += 0.25
         
         # Ensure score is within bounds
@@ -347,13 +377,19 @@ class DifferentialAnalyzer:
         # Price value factor
         price = player_static.get('now_cost', 0) / 10
         value_per_million = player_static.get('value_season', 0)
+        
+        try:
+            value_pm = float(value_per_million) if value_per_million else 0
+        except (ValueError, TypeError):
+            value_pm = 0
+            
         price_factor = 1.0
-        if value_per_million > 0:
-            if value_per_million > 7.0:  # Great value
+        if value_pm > 0:
+            if value_pm > 7.0:  # Great value
                 price_factor = 1.2
-            elif value_per_million > 5.0:  # Good value
+            elif value_pm > 5.0:  # Good value
                 price_factor = 1.1
-            elif value_per_million < 3.0:  # Poor value
+            elif value_pm < 3.0:  # Poor value
                 price_factor = 0.9
         
         # Calculate strategic value
