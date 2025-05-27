@@ -6,6 +6,7 @@ import ManagerSelector from '../components/ManagerSelector.jsx';
 import ManagerComparison from '../components/ManagerComparison.jsx';
 import LeagueTable from '../components/LeagueTable.jsx';
 import Analytics from '../components/Analytics.jsx';
+import RateLimitMonitor from '../components/RateLimitMonitor.jsx';
 
 function Dashboard() {
   const [tabValue, setTabValue] = useState(0);
@@ -53,6 +54,7 @@ function Dashboard() {
               <Tab label="All Battles" />
               <Tab label="League Table" />
               <Tab label="Analytics" />
+              <Tab label="System Health" />
             </Tabs>
           </Box>
           <Box sx={{ p: 3 }}>
@@ -65,6 +67,7 @@ function Dashboard() {
             {tabValue === 1 && <LiveBattles />}
             {tabValue === 2 && <LeagueTable leagueId={LEAGUE_ID} />}
             {tabValue === 3 && <Analytics leagueId={LEAGUE_ID} />}
+            {tabValue === 4 && <RateLimitMonitor />}
           </Box>
         </>
       )}

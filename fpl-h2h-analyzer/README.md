@@ -15,6 +15,7 @@ A comprehensive Fantasy Premier League (FPL) Head-to-Head analysis tool that pro
 ### Technical Highlights
 - **Real-time Updates**: WebSocket integration for live score updates
 - **Intelligent Caching**: Redis-based caching with file backup for optimal performance
+- **Production-Ready Rate Limiting**: Token bucket algorithm with 90 requests/minute limit
 - **Responsive Design**: Material-UI based frontend that works on all devices
 - **Docker Containerization**: Easy deployment with Docker Compose
 - **Async Architecture**: FastAPI backend with async/await for high performance
@@ -115,6 +116,7 @@ npm test
 - `GET /api/health` - Comprehensive health check with service status
 - `GET /api/gameweek/current` - Get current gameweek
 - `GET /api/league/{league_id}/overview` - Get league overview and standings
+- `GET /api/rate-limiter/metrics` - Get rate limiter status and metrics
 
 ### H2H Battle Endpoints
 - `GET /api/h2h/live-battles/{league_id}` - Get live H2H battles (supports `?gameweek=` parameter)
@@ -162,6 +164,33 @@ The application uses the following services:
 - **frontend**: React application with Nginx (port 3000)
 - **redis**: Caching and real-time updates
 - **postgres**: Database for persistent storage
+
+## 🚦 Rate Limiting
+
+The application includes a production-ready rate limiting system to prevent API abuse and ensure stable performance:
+
+### Features
+- **Token Bucket Algorithm**: 90 requests per minute with burst capacity of 10
+- **Request Prioritization**: Critical > High > Medium > Low priority queuing
+- **Exponential Backoff**: Automatic retry with increasing delays (1s, 2s, 4s... up to 32s)
+- **Smart Caching**: Different TTLs based on request priority
+- **Real-time Monitoring**: System Health tab shows rate limiter status
+
+### Rate Limit Configuration
+- **Capacity**: 90 tokens per minute
+- **Burst**: 10 additional tokens for traffic spikes
+- **Max Retries**: 5 attempts with exponential backoff
+- **Queue Size**: 100 requests per priority level
+
+### Monitoring
+Access the **System Health** tab in the UI to view:
+- Available tokens and capacity
+- Request success/failure rates
+- Current queue sizes by priority
+- Average wait times
+- Real-time request metrics
+
+The rate limiter ensures the application never exceeds FPL's API limits while maintaining responsive performance for users.
 
 ## 🎯 Usage Guide
 
@@ -283,12 +312,19 @@ For issues, questions, or contributions:
 ### 🚧 Known Limitations
 - **Single League**: Currently hardcoded to league ID 620117
 - **No Authentication**: Public leagues only
-- **No Rate Limiting**: May hit FPL API limits with heavy usage
 - **Limited API Coverage**: Using 8 of 20+ available FPL endpoints
 
 See [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) for detailed implementation status and roadmap.
 
 ## 🎉 Recent Updates
+
+### v3.1.0 (May 27, 2025) - Production-Ready Rate Limiting
+- **NEW**: Comprehensive rate limiting system (90 requests/minute)
+- **NEW**: System Health tab with rate limiter monitoring
+- **NEW**: Request prioritization and intelligent queuing
+- **NEW**: Exponential backoff for API resilience
+- **IMPROVED**: Enhanced caching with priority-based TTLs
+- **ADDED**: Rate limiter metrics API endpoint
 
 ### v3.0.1 (May 27, 2025) - Fixes & Documentation
 - **FIXED**: Visualization API endpoint error

@@ -18,6 +18,14 @@ from urllib.parse import urlencode
 
 import httpx
 
+# Import rate limiter
+from .rate_limiter import (
+    RateLimitedFPLClient, 
+    RateLimitConfig, 
+    RequestPriority,
+    get_endpoint_priority
+)
+
 # Configure logging
 logger = logging.getLogger(__name__)
 

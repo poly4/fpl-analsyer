@@ -8,7 +8,7 @@ import asyncio
 import uuid
 from typing import Optional, List, Dict, Any
 
-from .services.live_data import LiveDataService
+from .services.live_data_v2 import LiveDataService
 from .services.h2h_analyzer import H2HAnalyzer
 from .services.enhanced_h2h_analyzer import EnhancedH2HAnalyzer
 from .services.analytics import DifferentialAnalyzer, PredictiveEngine, ChipAnalyzer, PatternRecognition
@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
         websocket_manager = WebSocketManager(max_connections=1000, heartbeat_interval=30)
         await websocket_manager.start_background_tasks()
         
-        # Initialize services
+        # Initialize services with rate limiting
         live_data_service = LiveDataService()
         h2h_analyzer = H2HAnalyzer(live_data_service)
         
@@ -163,6 +163,30 @@ async def health_check():
             "error": str(e),
             "timestamp": asyncio.get_event_loop().time()
         }
+
+@app.get("/api/test/rate-limiter")
+async def test_rate_limiter():
+    """Test if rate limiter is initialized"""
+    try:
+        has_rate_limiter = hasattr(live_data_service, 'rate_limiter') if live_data_service else False
+        rate_limiter_type = type(live_data_service.rate_limiter).__name__ if has_rate_limiter else None
+        
+        result = {
+            "live_data_service_exists": live_data_service is not None,
+            "has_rate_limiter": has_rate_limiter,
+            "rate_limiter_type": rate_limiter_type
+        }
+        
+        if has_rate_limiter:
+            try:
+                metrics = live_data_service.rate_limiter.get_metrics()
+                result["metrics"] = metrics
+            except Exception as e:
+                result["metrics_error"] = str(e)
+                
+        return result
+    except Exception as e:
+        return {"error": str(e), "type": type(e).__name__}
 
 @app.get("/api/test/analytics")
 async def test_analytics():
@@ -513,6 +537,18 @@ async def get_cache_stats():
             return stats
         else:
             raise HTTPException(status_code=503, detail="Cache service unavailable")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/rate-limiter/metrics")
+async def get_rate_limiter_metrics():
+    """Get rate limiter metrics and status"""
+    try:
+        if live_data_service and hasattr(live_data_service, 'rate_limiter'):
+            metrics = live_data_service.rate_limiter.get_metrics()
+            return metrics
+        else:
+            raise HTTPException(status_code=503, detail="Rate limiter not available")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
