@@ -486,6 +486,93 @@ async def get_manager_history(manager_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/manager/{manager_id}/transfers")
+async def get_manager_transfers(manager_id: int):
+    """Get complete transfer history for a manager."""
+    try:
+        data = await live_data_service.get_manager_transfers(manager_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/manager/{manager_id}/transfers/latest")
+async def get_manager_transfers_latest(manager_id: int):
+    """Get latest transfers for a manager."""
+    try:
+        data = await live_data_service.get_manager_transfers_latest(manager_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/manager/{manager_id}/cup")
+async def get_manager_cup(manager_id: int):
+    """Get manager's cup status."""
+    try:
+        data = await live_data_service.get_manager_cup(manager_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/player/{player_id}/summary")
+async def get_element_summary(player_id: int):
+    """Get detailed player information including history."""
+    try:
+        data = await live_data_service.get_element_summary(player_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/dream-team/{gameweek}")
+async def get_dream_team(gameweek: int):
+    """Get the dream team for a specific gameweek."""
+    try:
+        data = await live_data_service.get_dream_team(gameweek)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/set-piece-notes")
+async def get_set_piece_notes():
+    """Get penalty and set piece taker information."""
+    try:
+        data = await live_data_service.get_set_piece_notes()
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/event-status")
+async def get_event_status():
+    """Get current event/bonus processing status."""
+    try:
+        data = await live_data_service.get_event_status()
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/league/classic/{league_id}/standings")
+async def get_classic_league_standings(
+    league_id: int,
+    page_standings: int = 1,
+    page_new_entries: int = 1
+):
+    """Get classic league standings with pagination."""
+    try:
+        data = await live_data_service.get_classic_league_standings(
+            league_id, page_standings, page_new_entries
+        )
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/league/{league_id}/entries-and-h2h-matches")
+async def get_league_entries_and_h2h_matches(league_id: int):
+    """Get all league entries and H2H matches."""
+    try:
+        data = await live_data_service.get_league_entries_and_h2h_matches(league_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/websocket/stats")
 async def get_websocket_stats():
     """Get WebSocket connection statistics"""

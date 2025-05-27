@@ -132,9 +132,34 @@ class LiveDataService:
         return f"{clean_endpoint}.json"
     
     def _get_cache_ttl(self, endpoint: str) -> int:
-        """Get cache TTL based on endpoint priority"""
+        """Get cache TTL based on endpoint volatility"""
+        # During live matches (game in progress)
+        if "live" in endpoint or "event-status" in endpoint:
+            return 30  # 30 seconds for live data
+            
+        # Highly volatile during gameweek
+        if "picks" in endpoint or "transfers-latest" in endpoint:
+            return 60  # 1 minute
+            
+        # Changes once per gameweek
+        if "transfers" in endpoint and "latest" not in endpoint:
+            return 3600  # 1 hour
+            
+        # Relatively static data
+        if "bootstrap-static" in endpoint or "fixtures" in endpoint:
+            return 1800  # 30 minutes
+            
+        # Very static data
+        if "set-piece-notes" in endpoint or "element-summary" in endpoint:
+            return 7200  # 2 hours
+            
+        # League standings update periodically
+        if "standings" in endpoint or "league" in endpoint:
+            return 300  # 5 minutes
+            
+        # Default based on priority
         priority = get_endpoint_priority(endpoint)
-        return self.cache_ttls.get(priority, 300)  # Default 5 minutes
+        return self.cache_ttls.get(priority, 300)
     
     async def _check_cache(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """Check if valid cached data exists"""
@@ -360,6 +385,92 @@ class LiveDataService:
             "team/set-piece-notes",
             priority=RequestPriority.LOW
         )
+    
+    # Missing endpoints to implement
+    
+    async def get_bootstrap_dynamic(self, manager_id: int) -> Optional[Dict[str, Any]]:
+        """Get user's team value and bank (requires authentication - CRITICAL)"""
+        # Note: This endpoint requires authentication which we don't currently support
+        logger.warning("bootstrap-dynamic endpoint requires authentication")
+        return None
+    
+    async def get_manager_cup(self, manager_id: int) -> Optional[Dict[str, Any]]:
+        """Get manager's cup status (MEDIUM priority)"""
+        return await self._fetch_with_priority(
+            f"entry/{manager_id}/cup",
+            priority=RequestPriority.MEDIUM
+        )
+    
+    async def get_classic_league_standings(self, league_id: int, page_standings: int = 1, page_new_entries: int = 1) -> Optional[Dict[str, Any]]:
+        """Get classic league standings with pagination (MEDIUM priority)"""
+        params = {
+            "page_standings": page_standings,
+            "page_new_entries": page_new_entries
+        }
+        return await self._fetch_with_priority(
+            f"leagues-classic/{league_id}/standings",
+            params=params,
+            priority=RequestPriority.MEDIUM
+        )
+    
+    async def get_league_entries_and_h2h_matches(self, league_id: int) -> Optional[Dict[str, Any]]:
+        """Get all league entries and H2H matches (HIGH priority for H2H leagues)"""
+        return await self._fetch_with_priority(
+            f"leagues-entries-and-h2h-matches/league/{league_id}",
+            priority=RequestPriority.HIGH
+        )
+    
+    # Pagination helpers
+    
+    async def get_all_h2h_matches(self, league_id: int, max_pages: int = 50) -> List[Dict[str, Any]]:
+        """Get all H2H matches across all pages (handles pagination automatically)"""
+        all_matches = []
+        
+        for page in range(1, max_pages + 1):
+            data = await self.get_h2h_matches(league_id, page)
+            if not data or not data.get("results"):
+                break
+                
+            all_matches.extend(data["results"])
+            
+            # Check if there are more pages
+            if not data.get("has_next", False):
+                break
+                
+        return all_matches
+    
+    async def get_all_classic_league_standings(self, league_id: int, max_pages: int = 50) -> Dict[str, Any]:
+        """Get all classic league standings across all pages"""
+        all_standings = []
+        league_info = None
+        
+        for page in range(1, max_pages + 1):
+            data = await self.get_classic_league_standings(league_id, page_standings=page)
+            if not data:
+                break
+                
+            # Save league info from first page
+            if page == 1 and "league" in data:
+                league_info = data["league"]
+                
+            standings = data.get("standings", {})
+            results = standings.get("results", [])
+            
+            if not results:
+                break
+                
+            all_standings.extend(results)
+            
+            # Check if there are more pages
+            if not standings.get("has_next", False):
+                break
+                
+        return {
+            "league": league_info,
+            "standings": {
+                "results": all_standings
+            }
+        }
     
     # Cache management
     
