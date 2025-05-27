@@ -1,0 +1,94 @@
+{
+  "manager1_info": {
+    "id": 3610217,
+    "name": "Chief Jide",
+    "team_name": "Lit4Eva*",
+    "overall_rank": 1228222,
+    "overall_points": 2270
+  },
+  "manager2_info": {
+    "id": 197050,
+    "name": "Dola Araoye",
+    "team_name": "Araoye Utd",
+    "overall_rank": 1791531,
+    "overall_points": 2223
+  },
+  "manager1_overall_stats": {
+    "manager_id": 3610217,
+    "manager_name": "Chief Jide",
+    "team_name": "Lit4Eva*",
+    "overall_rank": 1228222,
+    "total_points": 2270,
+    "average_gameweek_points": 60.473684210526315,
+    "consistency_stdev": 23.321184942897414,
+    "form_last_5_gws": 43.2,
+    "transfer_analysis": {
+      "total_transfers": 42,
+      "total_hits_cost": 28,
+      "average_transfers_per_gw": 1.105263157894737,
+      "gameweeks_with_hits": 0
+    },
+    "chips_used_this_season": [
+      "wildcard",
+      "manager",
+      "wildcard",
+      "3xc",
+      "bboost"
+    ],
+    "last_gameweek_points": 0,
+    "current_team_value": 102.1,
+    "bank": 1.4
+  },
+  "manager2_overall_stats": {
+    "manager_id": 197050,
+    "manager_name": "Dola Araoye",
+    "team_name": "Araoye Utd",
+    "overall_rank": 1791531,
+    "total_points": 2223,
+    "average_gameweek_points": 58.60526315789474,
+    "consistency_stdev": 22.46623830200307,
+    "form_last_5_gws": 34.6,
+    "transfer_analysis": {
+      "total_transfers": 35,
+      "total_hits_cost": 4,
+      "average_transfers_per_gw": 0.9210526315789473,
+      "gameweeks_with_hits": 0
+    },
+    "chips_used_this_season": [
+      "wildcard",
+      "3xc",
+      "manager",
+      "wildcard",
+      "bboost",
+      "freehit"
+    ],
+    "last_gameweek_points": 0,
+    "current_team_value": 99.2,
+    "bank": 0.0
+  },
+  "h2h_record": {
+    "manager1_id": 3610217,
+    "manager2_id": 197050,
+    "matches_played": 0,
+    "manager1_wins": 0,
+    "manager2_wins": 0,
+    "draws": 0,
+    "manager1_total_fpl_points_in_h2h": 0,
+    "manager2_total_fpl_points_in_h2h": 0,
+    "manager1_avg_fpl_points_in_h2h": 0,
+    "manager2_avg_fpl_points_in_h2h": 0
+  },
+  "latest_gw_differentials": "Error processing picks for differentials: 'dict' object has no attribute 'picks'",
+  "manager1_momentum": {
+    "manager_id": 3610217,
+    "h2h_wins_last_n_gws": 0,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 29.67
+  },
+  "manager2_momentum": {
+    "manager_id": 197050,
+    "h2h_wins_last_n_gws": 0,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 29.67
+  }
+}

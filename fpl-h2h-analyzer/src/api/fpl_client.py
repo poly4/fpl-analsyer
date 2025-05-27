@@ -56,7 +56,17 @@ class FPLAPIClient:
 
     def _get_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """Makes a GET request to the FPL API, utilizing cache."""
-        url = f"{self.base_url}{endpoint}/"
+        # Ensure endpoint doesn't start with slash and base_url ends with slash
+        endpoint = endpoint.lstrip('/')
+        base_url = self.base_url
+        if not base_url.endswith('/'):
+            base_url += '/'
+
+        # Ensure endpoint ends with trailing slash (CRITICAL for FPL API)
+        if not endpoint.endswith('/') and '?' not in endpoint:
+            endpoint += '/'
+
+        url = f"{base_url}{endpoint}"
         cache_path = self._get_cache_path(endpoint, params)
 
         cached_data = self._read_from_cache(cache_path)
@@ -65,18 +75,25 @@ class FPLAPIClient:
             return cached_data
 
         # print(f"Cache miss for {url} with params {params}. Fetching from API...")
-        try:
-            response = self.session.get(url, params=params)
-            response.raise_for_status()  # Raises an HTTPError for bad responses (4XX or 5XX)
-            data = response.json()
-            self._write_to_cache(cache_path, data)
-            return data
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching data from {url}: {e}")
-            return None
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON from {url}: {e}")
-            return None
+        retries = 3
+        for attempt in range(retries):
+            try:
+                response = self.session.get(url, params=params)
+                response.raise_for_status()  # Raises an HTTPError for bad responses (4XX or 5XX)
+                data = response.json()
+                self._write_to_cache(cache_path, data)
+                return data
+            except requests.exceptions.RequestException as e:
+                print(f"Attempt {attempt + 1}/{retries} failed for {url}: {e}")
+                if attempt < retries - 1:
+                    time.sleep(2) # Wait before retrying
+                else:
+                    print(f"Max retries reached for {url}. Giving up.")
+                    return None
+            except json.JSONDecodeError as e:
+                print(f"Error decoding JSON from {url}: {e}")
+                return None
+        return None # Should not be reached if retries > 0, but good practice
 
     def get_bootstrap_static(self) -> Optional[Dict[str, Any]]:
         """Fetches general FPL game data (players, teams, events, etc.)."""
@@ -84,7 +101,17 @@ class FPLAPIClient:
 
     def get_manager_info(self, manager_id: int) -> Optional[Dict[str, Any]]:
         """Fetches a specific manager's profile information."""
-        return self._get_request(f"entry/{manager_id}")
+        data = self._get_request(f"entry/{manager_id}")
+        if data:
+            # The API doesn't return summary fields anymore, calculate them
+            if 'current' in data:
+                # Get latest gameweek data for overall rank/points
+                current_gw = data['current'][-1] if data['current'] else None
+                if current_gw:
+                    data['summary_overall_rank'] = current_gw.get('overall_rank')
+                    data['summary_overall_points'] = current_gw.get('total_points')
+            return data
+        return None
 
     def get_manager_history(self, manager_id: int) -> Optional[Dict[str, Any]]:
         """Fetches a manager's past seasons and current gameweek history."""
@@ -104,13 +131,48 @@ class FPLAPIClient:
 
     def get_h2h_league_matches(self, league_id: int, gameweek: Optional[int] = None, page: int = 1) -> Optional[Dict[str, Any]]:
         """
-        Fetches H2H matches for a league. Can be filtered by gameweek.
-        The endpoint is typically /api/leagues-h2h-matches/league/{league_id}/?page={page}&event={gameweek}
+        Fetches H2H matches for a league with better error handling.
         """
-        params = {"page": page}
-        if gameweek is not None:
-            params["event"] = gameweek
-        return self._get_request(f"leagues-h2h-matches/league/{league_id}", params=params)
+        # First, let's try to get all matches without pagination
+        all_results = []
+        current_page = 1
+        max_pages = 50  # Safety limit
+        
+        while current_page <= max_pages:
+            params = {"page": current_page}
+            if gameweek is not None:
+                params["event"] = gameweek
+                
+            # Try the correct endpoint format
+            data = self._get_request(f"leagues-h2h-matches/league/{league_id}", params=params)
+            
+            if not data:
+                print(f"No data returned for H2H matches, league {league_id}, page {current_page}")
+                break
+                
+            if 'results' in data:
+                results = data['results']
+                if not results:
+                    print(f"No results in page {current_page}")
+                    break
+                    
+                all_results.extend(results)
+                print(f"Fetched {len(results)} matches from page {current_page}")
+                
+                # Check if there are more pages
+                if not data.get('has_next', False):
+                    break
+            else:
+                print(f"Unexpected response format: {list(data.keys())}")
+                # Try to use the data as-is if it's a list
+                if isinstance(data, list):
+                    all_results.extend(data)
+                break
+                
+            current_page += 1
+        
+        print(f"Total H2H matches fetched: {len(all_results)}")
+        return {'results': all_results, 'has_next': False}
 
 # Example Usage (for testing purposes)
 if __name__ == "__main__":

@@ -1,0 +1,199 @@
+{
+  "manager1_info": {
+    "id": 197050,
+    "name": "Dola Araoye",
+    "team_name": "Araoye Utd",
+    "overall_rank": 1791531,
+    "overall_points": 2223
+  },
+  "manager2_info": {
+    "id": 3354300,
+    "name": "Ross Burrell",
+    "team_name": "Fire Squad",
+    "overall_rank": 2388626,
+    "overall_points": 2180
+  },
+  "manager1_overall_stats": {
+    "manager_id": 197050,
+    "manager_name": "Dola Araoye",
+    "team_name": "Araoye Utd",
+    "overall_rank": 1791531,
+    "total_points": 2223,
+    "average_gameweek_points": 58.60526315789474,
+    "consistency_stdev": 22.46623830200307,
+    "form_last_5_gws": 34.6,
+    "transfer_analysis": {
+      "total_transfers": 35,
+      "total_hits_cost": 4,
+      "average_transfers_per_gw": 0.9210526315789473,
+      "gameweeks_with_hits": 0
+    },
+    "chips_used_this_season": [
+      "wildcard",
+      "3xc",
+      "manager",
+      "wildcard",
+      "bboost",
+      "freehit"
+    ],
+    "last_gameweek_points": 0,
+    "current_team_value": 99.2,
+    "bank": 0.0
+  },
+  "manager2_overall_stats": {
+    "manager_id": 3354300,
+    "manager_name": "Ross Burrell",
+    "team_name": "Fire Squad",
+    "overall_rank": 2388626,
+    "total_points": 2180,
+    "average_gameweek_points": 58.31578947368421,
+    "consistency_stdev": 22.892351210709677,
+    "form_last_5_gws": 41.2,
+    "transfer_analysis": {
+      "total_transfers": 45,
+      "total_hits_cost": 44,
+      "average_transfers_per_gw": 1.1842105263157894,
+      "gameweeks_with_hits": 0
+    },
+    "chips_used_this_season": [
+      "wildcard",
+      "3xc",
+      "manager",
+      "freehit",
+      "wildcard",
+      "bboost"
+    ],
+    "last_gameweek_points": 0,
+    "current_team_value": 102.7,
+    "bank": 4.5
+  },
+  "h2h_record": {
+    "manager1_id": 197050,
+    "manager2_id": 3354300,
+    "matches_played": 2,
+    "manager1_wins": 1,
+    "manager2_wins": 1,
+    "draws": 0,
+    "manager1_total_fpl_points_in_h2h": 145,
+    "manager2_total_fpl_points_in_h2h": 145,
+    "manager1_avg_fpl_points_in_h2h": 72.5,
+    "manager2_avg_fpl_points_in_h2h": 72.5
+  },
+  "latest_gw_differentials": {
+    "manager1_differentials": [
+      {
+        "id": 163,
+        "name": "Cucurella"
+      },
+      {
+        "id": 422,
+        "name": "Aina"
+      },
+      {
+        "id": 328,
+        "name": "M.Salah"
+      },
+      {
+        "id": 15,
+        "name": "Raya"
+      },
+      {
+        "id": 433,
+        "name": "Gibbs-White"
+      },
+      {
+        "id": 402,
+        "name": "J.Murphy"
+      },
+      {
+        "id": 755,
+        "name": "Marmoush"
+      },
+      {
+        "id": 182,
+        "name": "Palmer"
+      },
+      {
+        "id": 409,
+        "name": "Livramento"
+      }
+    ],
+    "manager2_differentials": [
+      {
+        "id": 99,
+        "name": "Mbeumo"
+      },
+      {
+        "id": 313,
+        "name": "Bradley"
+      },
+      {
+        "id": 617,
+        "name": "Evanilson"
+      },
+      {
+        "id": 47,
+        "name": "Martinez"
+      },
+      {
+        "id": 17,
+        "name": "Saka"
+      },
+      {
+        "id": 148,
+        "name": "Welbeck"
+      },
+      {
+        "id": 24,
+        "name": "White"
+      },
+      {
+        "id": 345,
+        "name": "De Bruyne"
+      },
+      {
+        "id": 350,
+        "name": "Gvardiol"
+      }
+    ],
+    "shared_players": [
+      {
+        "id": 58,
+        "name": "Watkins"
+      },
+      {
+        "id": 54,
+        "name": "Rogers"
+      }
+    ],
+    "manager1_captain": {
+      "id": 328,
+      "name": "M.Salah"
+    },
+    "manager2_captain": {
+      "id": 17,
+      "name": "Saka"
+    },
+    "captain_is_differential": true,
+    "manager1_vice_captain": {
+      "id": 58,
+      "name": "Watkins"
+    },
+    "manager2_vice_captain": {
+      "id": 345,
+      "name": "De Bruyne"
+    }
+  },
+  "manager1_momentum": {
+    "manager_id": 197050,
+    "h2h_wins_last_n_gws": 1,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 29.67
+  },
+  "manager2_momentum": {
+    "manager_id": 3354300,
+    "h2h_wins_last_n_gws": 2,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 38.33
+  }
+}

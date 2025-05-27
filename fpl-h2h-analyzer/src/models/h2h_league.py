@@ -139,13 +139,32 @@ class H2HLeague:
 
     def update_matches_from_api_data(self, matches_data: List[Dict[str, Any]]):
         """Updates or adds matches, organizing them by gameweek."""
+        if not matches_data:
+            print(f"No matches data to update for league {self.id}")
+            return
+            
+        matches_added = 0
         for match_api_data in matches_data:
-            match = H2HMatch.from_api_data(match_api_data, league_id_override=self.id)
-            if match.event not in self.matches:
-                self.matches[match.event] = []
-            # Avoid duplicate matches if called multiple times with overlapping data
-            if not any(m.id == match.id for m in self.matches[match.event]):
-                 self.matches[match.event].append(match)
+            try:
+                # Some endpoints might have the data nested
+                if 'data' in match_api_data:
+                    match_api_data = match_api_data['data']
+                    
+                match = H2HMatch.from_api_data(match_api_data, league_id_override=self.id)
+                
+                if match.event not in self.matches:
+                    self.matches[match.event] = []
+                    
+                # Avoid duplicate matches 
+                if not any(m.id == match.id for m in self.matches[match.event]):
+                    self.matches[match.event].append(match)
+                    matches_added += 1
+                    
+            except Exception as e:
+                print(f"Error processing match data: {e}")
+                print(f"Match data: {match_api_data}")
+                
+        print(f"Added {matches_added} matches to league {self.id}")
 
     def get_manager_entry(self, manager_id: int) -> Optional[H2HLeagueEntry]:
         for entry in self.standings:

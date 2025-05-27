@@ -15,7 +15,7 @@ from rich.live import Live
 
 from src.api.fpl_client import FPLAPIClient
 from config import TARGET_LEAGUE_ID, TARGET_LEAGUE_NAME # Use configured league ID and name
-from .models.manager import ManagerProfile
+from .models.manager import ManagerProfile, ManagerGameweekPicks # Add ManagerGameweekPicks
 from .models.h2h_league import H2HLeague, H2HLeagueEntry
 from .reports.report_generator import generate_manager_comparison_report
 
@@ -77,14 +77,17 @@ def select_managers_from_league(
 
     return selected_managers
 
+from src.utils.debug import DebugLogger
+
 def fetch_all_required_data(
-    client: FPLAPIClient, 
-    league_id: int, 
+    client: FPLAPIClient,
+    league_id: int,
     manager_ids: List[int],
-    progress: Progress
+    progress: Progress,
+    debug_logger: Optional[DebugLogger] = None
 ) -> Tuple[Optional[dict], Optional[H2HLeague], List[ManagerProfile], Optional[int], List[Optional[dict]]]:
-    """Fetches all data required for the analysis and report."""
-    
+    """Fetches all data required for the analysis and report with enhanced error handling and debugging."""
+
     bootstrap_task = progress.add_task("[cyan]Fetching bootstrap data...[/cyan]", total=1)
     league_task = progress.add_task("[cyan]Fetching H2H league data...[/cyan]", total=1)
     managers_task = progress.add_task("[cyan]Fetching manager profiles...[/cyan]", total=len(manager_ids))
@@ -92,57 +95,101 @@ def fetch_all_required_data(
 
     bootstrap_data = client.get_bootstrap_static()
     progress.update(bootstrap_task, advance=1, description="[green]Bootstrap data fetched.[/green]")
+    if debug_logger and bootstrap_data:
+        debug_logger.log_api_response("bootstrap-static", bootstrap_data)
     if not bootstrap_data:
-        CONSOLE.print("[bold red]Failed to fetch bootstrap data. Exiting.[/bold red]")
+        error_details = {"message": "Failed to fetch bootstrap data.", "league_id": league_id, "manager_ids": manager_ids}
+        if debug_logger:
+            debug_logger.log_error("bootstrap_fetch_failed", error_details)
+        CONSOLE.print("[bold red]Error: Failed to fetch bootstrap data. Please check your internet connection or the FPL API status.[/bold red]")
         return None, None, [], None, []
 
     current_gw = get_current_gameweek(bootstrap_data)
     if current_gw is None:
-        CONSOLE.print("[bold red]Could not determine current gameweek. Exiting.[/bold red]")
+        error_details = {"message": "Could not determine current gameweek.", "bootstrap_keys": list(bootstrap_data.keys()) if bootstrap_data else "N/A"}
+        if debug_logger:
+            debug_logger.log_error("current_gameweek_failed", error_details)
+        CONSOLE.print("[bold red]Error: Could not determine current gameweek from bootstrap data. The API structure might have changed.[/bold red]")
         return bootstrap_data, None, [], None, []
     CONSOLE.print(f"[info]Current Gameweek: {current_gw}[/info]")
 
     h2h_league_data_standings = client.get_h2h_league_standings(league_id)
     progress.update(league_task, advance=1, description="[green]H2H league standings fetched.[/green]")
-    if not h2h_league_data_standings:
-        CONSOLE.print(f"[bold red]Failed to fetch H2H league standings for league {league_id}. Exiting.[/bold red]")
+    if debug_logger and h2h_league_data_standings:
+        debug_logger.log_api_response(f"leagues-h2h/{league_id}/standings", h2h_league_data_standings)
+    if not h2h_league_data_standings or not h2h_league_data_standings.get('standings', {}).get('results'):
+        error_details = {"message": "Failed to fetch H2H league standings.", "league_id": league_id, "response_keys": list(h2h_league_data_standings.keys()) if h2h_league_data_standings else "N/A"}
+        if debug_logger:
+            debug_logger.log_error("h2h_standings_fetch_failed", error_details)
+        CONSOLE.print(f"[bold red]Error: Failed to fetch H2H league standings for league {league_id}. The league ID might be incorrect or the API is unavailable.[/bold red]")
         return bootstrap_data, None, [], current_gw, []
-    
+
     # Create H2HLeague object from standings
     h2h_league_obj = H2HLeague.from_standings_api_data(h2h_league_data_standings)
 
     # Fetch H2H matches and update the league object
     all_matches_data = client.get_h2h_league_matches(league_id)
-    if all_matches_data:
+    if debug_logger and all_matches_data:
+        debug_logger.log_api_response(f"leagues-h2h-matches/league/{league_id}", all_matches_data)
+    if all_matches_data and all_matches_data.get('results'):
         h2h_league_obj.update_matches_from_api_data(all_matches_data['results'])
     else:
+        error_details = {"message": "Could not fetch H2H match details.", "league_id": league_id, "response_keys": list(all_matches_data.keys()) if all_matches_data else "N/A"}
+        if debug_logger:
+            debug_logger.log_error("h2h_matches_fetch_failed", error_details)
         CONSOLE.print(f"[yellow]Warning: Could not fetch H2H match details for league {league_id}. H2H record might be incomplete.[/yellow]")
 
     manager_profiles: List[ManagerProfile] = []
-    manager_picks_latest_gw: List[Optional[dict]] = [] # Storing as dicts for now
+    manager_picks_latest_gw: List[Optional[ManagerGameweekPicks]] = []  # Change type
 
     for manager_id in manager_ids:
-        CONSOLE.print(f"Fetching data for manager ID: {manager_id}...")
+        # CONSOLE.print(f"Fetching data for manager ID: {manager_id}...") # Progress bar handles this
         manager_info_raw = client.get_manager_info(manager_id)
-        manager_history_raw = client.get_manager_history(manager_id)
-        
-        if manager_info_raw and manager_history_raw:
-            profile_data = manager_info_raw 
-            profile_data.update(manager_history_raw) 
-            
-            manager_profile = ManagerProfile.from_entry_api_data(profile_data)
-            manager_profiles.append(manager_profile)
-            progress.update(managers_task, advance=1)
+        if debug_logger and manager_info_raw:
+            debug_logger.log_api_response(f"entry/{manager_id}", manager_info_raw, manager_id=manager_id)
 
-            picks_data = client.get_manager_picks(manager_id, current_gw)
-            manager_picks_latest_gw.append(picks_data) 
-            progress.update(picks_task, advance=1)
+        manager_history_raw = client.get_manager_history(manager_id)
+        if debug_logger and manager_history_raw:
+            debug_logger.log_api_response(f"entry/{manager_id}/history", manager_history_raw, manager_id=manager_id)
+
+        if manager_info_raw and manager_history_raw:
+            try:
+                profile_data = manager_info_raw
+                profile_data.update(manager_history_raw)
+
+                manager_profile = ManagerProfile.from_entry_api_data(profile_data)
+                manager_profiles.append(manager_profile)
+                progress.update(managers_task, advance=1, description=f"[green]Fetched profile for {manager_profile.name}[/green]")
+
+                picks_data = client.get_manager_picks(manager_id, current_gw)
+                if picks_data:
+                    # Convert raw dict to ManagerGameweekPicks object
+                    try:
+                        picks_obj = ManagerGameweekPicks.from_api_data(picks_data)
+                        manager_picks_latest_gw.append(picks_obj)
+                    except Exception as e:
+                        CONSOLE.print(f"[yellow]Warning: Could not parse picks for manager {manager_id}: {str(e)}[/yellow]")
+                        manager_picks_latest_gw.append(None)
+                else:
+                    manager_picks_latest_gw.append(None)
+                progress.update(picks_task, advance=1)
+            except Exception as e:
+                 error_details = {"message": "Error processing manager data.", "manager_id": manager_id, "error": str(e)}
+                 if debug_logger:
+                     debug_logger.log_error("manager_data_processing_failed", error_details)
+                 CONSOLE.print(f"[bold red]Error processing data for manager {manager_id}: {escape(str(e))}. Skipping.[/bold red]")
+                 manager_picks_latest_gw.append(None) # Ensure lists stay aligned
         else:
+            error_details = {"message": "Failed to fetch complete data for manager.", "manager_id": manager_id, "info_fetched": bool(manager_info_raw), "history_fetched": bool(manager_history_raw)}
+            if debug_logger:
+                debug_logger.log_error("manager_fetch_failed", error_details)
             CONSOLE.print(f"[bold red]Failed to fetch complete data for manager {manager_id}. Skipping.[/bold red]")
-            manager_picks_latest_gw.append(None) 
-    
-    progress.update(managers_task, description="[green]Manager profiles fetched.[/green]")
-    progress.update(picks_task, description="[green]Manager picks fetched.[/green]")
+            manager_picks_latest_gw.append(None) # Ensure lists stay aligned
+            progress.update(managers_task, advance=1)
+            progress.update(picks_task, advance=1)
+
+    progress.update(managers_task, description="[green]All manager profiles processed.[/green]")
+    progress.update(picks_task, description="[green]All manager picks processed.[/green]")
 
     return bootstrap_data, h2h_league_obj, manager_profiles, current_gw, manager_picks_latest_gw
 
@@ -151,18 +198,24 @@ def main():
     CONSOLE.print(f"Targeting League: [bold yellow]{TARGET_LEAGUE_NAME} (ID: {TARGET_LEAGUE_ID})[/bold yellow]")
 
     client = FPLAPIClient()
+    debug_logger = DebugLogger() # Initialize debug logger
 
     with Progress(
-        "[progress.description]{task.description}",
-        "[progress.percentage]{task.percentage:>3.0f}%",
-        console=CONSOLE
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=CONSOLE,
+        transient=True # Hide progress bar when task is complete
     ) as progress:
         league_members_task = progress.add_task("[cyan]Fetching league members...[/cyan]", total=1)
         initial_league_standings_data = client.get_h2h_league_standings(TARGET_LEAGUE_ID)
         progress.update(league_members_task, advance=1, description="[green]League members fetched.[/green]")
 
         if not initial_league_standings_data or not initial_league_standings_data.get("standings", {}).get("results"):
-            CONSOLE.print(f"[bold red]Could not fetch league members for {TARGET_LEAGUE_NAME}. Exiting.[/bold red]")
+            CONSOLE.print(f"[bold red]Error: Could not fetch league members for {TARGET_LEAGUE_NAME}. The league ID might be incorrect or the API is unavailable.[/bold red]")
             return
 
         league_members_entries = [
@@ -171,13 +224,13 @@ def main():
         ]
 
         if not league_members_entries:
-            CONSOLE.print(f"[bold red]No league members found in {TARGET_LEAGUE_NAME}. Exiting.[/bold red]")
+            CONSOLE.print(f"[bold red]Error: No league members found in {TARGET_LEAGUE_NAME}. Please check the league ID.[/bold red]")
             return
 
         selected_entries = select_managers_from_league(league_members_entries, num_managers_to_select=2)
 
         if len(selected_entries) < 2:
-            CONSOLE.print("[bold red]Not enough managers selected for comparison. Exiting.[/bold red]")
+            CONSOLE.print("[bold red]Not enough managers selected for comparison. Please select at least two managers.[/bold red]")
             return
 
         manager1_entry, manager2_entry = selected_entries[0], selected_entries[1]
@@ -186,55 +239,47 @@ def main():
         CONSOLE.print(f"\nComparing [bold magenta]{manager1_entry.player_name}[/bold magenta] vs [bold magenta]{manager2_entry.player_name}[/bold magenta]...")
 
         bootstrap_data, h2h_league_full_data, manager_profiles, current_gw, manager_picks_raw = \
-            fetch_all_required_data(client, TARGET_LEAGUE_ID, manager_ids_to_fetch, progress)
+            fetch_all_required_data(client, TARGET_LEAGUE_ID, manager_ids_to_fetch, progress, debug_logger)
 
-        if not bootstrap_data or not h2h_league_full_data or len(manager_profiles) < 2 or current_gw is None:
-            CONSOLE.print("[bold red]Failed to fetch all necessary data for comparison. Exiting.[/bold red]")
-            return
-        
-        m1_profile = next((p for p in manager_profiles if p.id == manager1_entry.entry_id), None)
-        m2_profile = next((p for p in manager_profiles if p.id == manager2_entry.entry_id), None)
-        
-        # Ensure picks raw data aligns with profiles, assuming order is maintained from manager_ids_to_fetch
-        m1_picks_raw_data = None
-        m2_picks_raw_data = None
-        if m1_profile and manager_ids_to_fetch.index(m1_profile.id) < len(manager_picks_raw):
-            m1_picks_raw_data = manager_picks_raw[manager_ids_to_fetch.index(m1_profile.id)]
-        if m2_profile and manager_ids_to_fetch.index(m2_profile.id) < len(manager_picks_raw):
-            m2_picks_raw_data = manager_picks_raw[manager_ids_to_fetch.index(m2_profile.id)]
-
-        if not m1_profile or not m2_profile:
-            CONSOLE.print("[bold red]Could not retrieve profiles for one or both selected managers. Exiting.[/bold red]")
+        if not manager_profiles or len(manager_profiles) < 2:
+            CONSOLE.print("[bold red]Could not fetch data for the selected managers. Aborting.[/bold red]")
             return
 
-        from src.models.manager import ManagerGameweekPicks 
-        m1_picks_obj = ManagerGameweekPicks.from_api_data(m1_picks_raw_data) if m1_picks_raw_data else None
-        m2_picks_obj = ManagerGameweekPicks.from_api_data(m2_picks_raw_data) if m2_picks_raw_data else None
+        manager1_profile = next((p for p in manager_profiles if p.id == manager1_entry.entry_id), None)
+        manager2_profile = next((p for p in manager_profiles if p.id == manager2_entry.entry_id), None)
 
-        report_generation_task = progress.add_task("[cyan]Generating comparison report...[/cyan]", total=1)
-        try:
-            output_files = generate_manager_comparison_report(
-                manager1_profile=m1_profile,
-                manager2_profile=m2_profile,
-                h2h_league_data=h2h_league_full_data,
-                bootstrap_static_data=bootstrap_data,
-                latest_gw=current_gw,
-                manager1_picks_latest_gw=m1_picks_obj, 
-                manager2_picks_latest_gw=m2_picks_obj,
-                output_formats=["json", "md", "csv", "chart"], 
-                output_filename_prefix=f"{TARGET_LEAGUE_NAME.replace(' ', '_')}_H2H"
-            )
-            progress.update(report_generation_task, advance=1, description="[green]Comparison report generated.[/green]")
-            CONSOLE.print("\n[bold green]Report Generation Complete![/bold green]")
-            for fmt, path in output_files.items():
-                CONSOLE.print(f"- {fmt.upper()} report saved to: {escape(str(path))}")
-        except Exception as e:
-            progress.update(report_generation_task, advance=1, description="[red]Report generation failed.[/red]")
-            CONSOLE.print(f"[bold red]An error occurred during report generation: {escape(str(e))}[/bold red]")
-            import traceback
-            CONSOLE.print(traceback.format_exc())
+        if not manager1_profile or not manager2_profile:
+             CONSOLE.print("[bold red]Could not find profile data for one or both selected managers after fetching. Aborting.[/bold red]")
+             return
 
-    CONSOLE.print("\nThank you for using the FPL H2H Analyzer!")
+        # Find the raw picks data for each manager
+        manager1_picks_raw = next((p for p, entry in zip(manager_picks_raw, manager_ids_to_fetch) if entry == manager1_entry.entry_id), None)
+        manager2_picks_raw = next((p for p, entry in zip(manager_picks_raw, manager_ids_to_fetch) if entry == manager2_entry.entry_id), None)
+
+        if not manager1_picks_raw or not manager2_picks_raw:
+             CONSOLE.print(f"[bold red]Could not fetch picks data for one or both managers for gameweek {current_gw}. Aborting.[/bold red]")
+             return
+
+        # Generate and print the report
+        report = generate_manager_comparison_report(
+            manager1_profile,
+            manager2_profile,
+            h2h_league_full_data, # Pass the full league data including matches
+            bootstrap_data, # Pass bootstrap data for element info
+            current_gw,
+            manager1_picks_raw,
+            manager2_picks_raw
+        )
+        CONSOLE.print(report)
+
+    CONSOLE.print("\n[bold green]Analysis complete. Thank you for using FPL H2H Analyzer![/bold green]")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        # Log any unhandled exceptions
+        debug_logger = DebugLogger() # Re-initialize if main failed before logger was created
+        error_details = {"message": "An unhandled error occurred.", "error": str(e)}
+        debug_logger.log_error("unhandled_exception", error_details)
+        CONSOLE.print(f"[bold red]An unexpected error occurred: {escape(str(e))}. Check debug logs for details.[/bold red]")

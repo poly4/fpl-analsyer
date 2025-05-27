@@ -1,0 +1,171 @@
+{
+  "manager1_info": {
+    "id": 3610217,
+    "name": "Chief Jide",
+    "team_name": "Lit4Eva*",
+    "overall_rank": 1228222,
+    "overall_points": null
+  },
+  "manager2_info": {
+    "id": 3391627,
+    "name": "Raph Polymath",
+    "team_name": "*PolyStars*",
+    "overall_rank": 3575022,
+    "overall_points": null
+  },
+  "manager1_overall_stats": {
+    "error": "No gameweek history available for this manager.",
+    "manager_id": 3610217,
+    "manager_name": "Chief Jide"
+  },
+  "manager2_overall_stats": {
+    "error": "No gameweek history available for this manager.",
+    "manager_id": 3391627,
+    "manager_name": "Raph Polymath"
+  },
+  "h2h_record": {
+    "manager1_id": 3610217,
+    "manager2_id": 3391627,
+    "matches_played": 0,
+    "manager1_wins": 0,
+    "manager2_wins": 0,
+    "draws": 0,
+    "manager1_total_fpl_points_in_h2h": 0,
+    "manager2_total_fpl_points_in_h2h": 0,
+    "manager1_avg_fpl_points_in_h2h": 0,
+    "manager2_avg_fpl_points_in_h2h": 0
+  },
+  "latest_gw_differentials": {
+    "manager1_differentials": [
+      {
+        "id": 513,
+        "name": "Areola"
+      },
+      {
+        "id": 99,
+        "name": "Mbeumo"
+      },
+      {
+        "id": 70,
+        "name": "Kerkez"
+      },
+      {
+        "id": 328,
+        "name": "M.Salah"
+      },
+      {
+        "id": 8,
+        "name": "Kiwior"
+      },
+      {
+        "id": 447,
+        "name": "Wood"
+      },
+      {
+        "id": 395,
+        "name": "Burn"
+      },
+      {
+        "id": 44,
+        "name": "Konsa"
+      },
+      {
+        "id": 13,
+        "name": "\u00d8degaard"
+      },
+      {
+        "id": 78,
+        "name": "Semenyo"
+      },
+      {
+        "id": 310,
+        "name": "A.Becker"
+      },
+      {
+        "id": 58,
+        "name": "Watkins"
+      },
+      {
+        "id": 255,
+        "name": "Robinson"
+      }
+    ],
+    "manager2_differentials": [
+      {
+        "id": 388,
+        "name": "Wan-Bissaka"
+      },
+      {
+        "id": 580,
+        "name": "Huijsen"
+      },
+      {
+        "id": 199,
+        "name": "Eze"
+      },
+      {
+        "id": 617,
+        "name": "Evanilson"
+      },
+      {
+        "id": 15,
+        "name": "Raya"
+      },
+      {
+        "id": 17,
+        "name": "Saka"
+      },
+      {
+        "id": 401,
+        "name": "Isak"
+      },
+      {
+        "id": 23,
+        "name": "Trossard"
+      },
+      {
+        "id": 350,
+        "name": "Gvardiol"
+      }
+    ],
+    "shared_players": [
+      {
+        "id": 514,
+        "name": "Bowen"
+      },
+      {
+        "id": 110,
+        "name": "Wissa"
+      }
+    ],
+    "manager1_captain": {
+      "id": 58,
+      "name": "Watkins"
+    },
+    "manager2_captain": {
+      "id": 23,
+      "name": "Trossard"
+    },
+    "captain_is_differential": true,
+    "manager1_vice_captain": {
+      "id": 328,
+      "name": "M.Salah"
+    },
+    "manager2_vice_captain": {
+      "id": 514,
+      "name": "Bowen"
+    }
+  },
+  "manager1_momentum": {
+    "manager_id": 3610217,
+    "h2h_wins_last_n_gws": 0,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 0.0
+  },
+  "manager2_momentum": {
+    "manager_id": 3391627,
+    "h2h_wins_last_n_gws": 1,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 0.0
+  }
+}

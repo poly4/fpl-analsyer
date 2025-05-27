@@ -1,0 +1,187 @@
+{
+  "manager1_info": {
+    "id": 2900078,
+    "name": "Jermane WD",
+    "team_name": "Jigga FC",
+    "overall_rank": 576730,
+    "overall_points": 2343
+  },
+  "manager2_info": {
+    "id": 3353582,
+    "name": "Yoma James",
+    "team_name": "The Commission",
+    "overall_rank": 3701781,
+    "overall_points": 2091
+  },
+  "manager1_overall_stats": {
+    "manager_id": 2900078,
+    "manager_name": "Jermane WD",
+    "team_name": "Jigga FC",
+    "overall_rank": 576730,
+    "total_points": 2343,
+    "average_gameweek_points": 63.3421052631579,
+    "consistency_stdev": 21.093455262415855,
+    "form_last_5_gws": 41.8,
+    "transfer_analysis": {
+      "total_transfers": 51,
+      "total_hits_cost": 68,
+      "average_transfers_per_gw": 1.3421052631578947,
+      "gameweeks_with_hits": 0
+    },
+    "chips_used_this_season": [
+      "wildcard",
+      "manager",
+      "wildcard",
+      "bboost",
+      "3xc",
+      "freehit"
+    ],
+    "last_gameweek_points": 0,
+    "current_team_value": 104.0,
+    "bank": 3.3
+  },
+  "manager2_overall_stats": {
+    "manager_id": 3353582,
+    "manager_name": "Yoma James",
+    "team_name": "The Commission",
+    "overall_rank": 3701781,
+    "total_points": 2091,
+    "average_gameweek_points": 55.23684210526316,
+    "consistency_stdev": 22.2521595800137,
+    "form_last_5_gws": 35.2,
+    "transfer_analysis": {
+      "total_transfers": 34,
+      "total_hits_cost": 8,
+      "average_transfers_per_gw": 0.8947368421052632,
+      "gameweeks_with_hits": 0
+    },
+    "chips_used_this_season": [
+      "wildcard",
+      "3xc",
+      "bboost",
+      "freehit",
+      "manager",
+      "wildcard"
+    ],
+    "last_gameweek_points": 0,
+    "current_team_value": 99.6,
+    "bank": 0.7
+  },
+  "h2h_record": {
+    "manager1_id": 2900078,
+    "manager2_id": 3353582,
+    "matches_played": 2,
+    "manager1_wins": 1,
+    "manager2_wins": 0,
+    "draws": 1,
+    "manager1_total_fpl_points_in_h2h": 89,
+    "manager2_total_fpl_points_in_h2h": 84,
+    "manager1_avg_fpl_points_in_h2h": 44.5,
+    "manager2_avg_fpl_points_in_h2h": 42.0
+  },
+  "latest_gw_differentials": {
+    "manager1_differentials": [
+      {
+        "id": 514,
+        "name": "Bowen"
+      },
+      {
+        "id": 327,
+        "name": "Luis D\u00edaz"
+      },
+      {
+        "id": 755,
+        "name": "Marmoush"
+      },
+      {
+        "id": 533,
+        "name": "A\u00eft-Nouri"
+      },
+      {
+        "id": 54,
+        "name": "Rogers"
+      },
+      {
+        "id": 350,
+        "name": "Gvardiol"
+      }
+    ],
+    "manager2_differentials": [
+      {
+        "id": 99,
+        "name": "Mbeumo"
+      },
+      {
+        "id": 617,
+        "name": "Evanilson"
+      },
+      {
+        "id": 366,
+        "name": "B.Fernandes"
+      },
+      {
+        "id": 78,
+        "name": "Semenyo"
+      },
+      {
+        "id": 573,
+        "name": "Milenkovi\u0107"
+      },
+      {
+        "id": 255,
+        "name": "Robinson"
+      }
+    ],
+    "shared_players": [
+      {
+        "id": 70,
+        "name": "Kerkez"
+      },
+      {
+        "id": 328,
+        "name": "M.Salah"
+      },
+      {
+        "id": 110,
+        "name": "Wissa"
+      },
+      {
+        "id": 401,
+        "name": "Isak"
+      },
+      {
+        "id": 443,
+        "name": "Sels"
+      }
+    ],
+    "manager1_captain": {
+      "id": 327,
+      "name": "Luis D\u00edaz"
+    },
+    "manager2_captain": {
+      "id": 401,
+      "name": "Isak"
+    },
+    "captain_is_differential": true,
+    "manager1_vice_captain": {
+      "id": 328,
+      "name": "M.Salah"
+    },
+    "manager2_vice_captain": {
+      "id": 366,
+      "name": "B.Fernandes"
+    }
+  },
+  "manager1_momentum": {
+    "manager_id": 2900078,
+    "h2h_wins_last_n_gws": 1,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 31.67
+  },
+  "manager2_momentum": {
+    "manager_id": 3353582,
+    "h2h_wins_last_n_gws": 0,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 25.33
+  }
+}

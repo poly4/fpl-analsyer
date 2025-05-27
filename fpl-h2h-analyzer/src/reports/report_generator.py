@@ -110,68 +110,109 @@ def generate_manager_comparison_report(
     return output_paths
 
 def _generate_markdown_report(report_data: Dict, m1: ManagerProfile, m2: ManagerProfile, gw: int) -> str:
-    """Helper to generate Markdown content from report_data."""
+    """Helper to generate Markdown content from report_data with correct field names."""
     md = f"# FPL H2H Battle Report: {m1.name} vs {m2.name} (GW{gw})\n\n"
     md += f"League ID: {TARGET_LEAGUE_ID}\n\n"
 
     # Manager Info
     md += f"## Manager Profiles\n"
     md += f"### {m1.name} (ID: {m1.id}, Team: {m1.team_name})\n"
-    md += f"- Overall Rank: {m1.overall_rank}, Total Points: {m1.overall_points}\n"
+    md += f"- Overall Rank: {m1.overall_rank:,}, Total Points: {m1.overall_points}\n"
     md += f"### {m2.name} (ID: {m2.id}, Team: {m2.team_name})\n"
-    md += f"- Overall Rank: {m2.overall_rank}, Total Points: {m2.overall_points}\n\n"
+    md += f"- Overall Rank: {m2.overall_rank:,}, Total Points: {m2.overall_points}\n\n"
 
     # H2H Record
     h2h = report_data.get('h2h_record', {})
     md += f"## Head-to-Head Record\n"
     if h2h.get('matches_played', 0) > 0:
         md += f"- Matches Played: {h2h.get('matches_played')}\n"
-        md += f"- {m1.name} Wins: {h2h.get('manager1_wins')} ({h2h.get('manager1_total_fpl_points_in_h2h')} pts)\n"
-        md += f"- {m2.name} Wins: {h2h.get('manager2_wins')} ({h2h.get('manager2_total_fpl_points_in_h2h')} pts)\n"
-        md += f"- Draws: {h2h.get('draws')}\n\n"
+        md += f"- {m1.name} Wins: {h2h.get('manager1_wins')} (Total H2H Points: {h2h.get('manager1_total_fpl_points_in_h2h')})\n"
+        md += f"- {m2.name} Wins: {h2h.get('manager2_wins')} (Total H2H Points: {h2h.get('manager2_total_fpl_points_in_h2h')})\n"
+        md += f"- Draws: {h2h.get('draws')}\n"
+        md += f"- Average Points in H2H: {m1.name} ({h2h.get('manager1_avg_fpl_points_in_h2h', 0):.1f}) vs {m2.name} ({h2h.get('manager2_avg_fpl_points_in_h2h', 0):.1f})\n\n"
     else:
         md += "- No H2H matches found between these managers in this league.\n\n"
 
-    # Overall Stats Comparison
+    # Overall Stats Comparison - USING CORRECT FIELD NAMES FROM JSON
     m1_stats = report_data.get('manager1_overall_stats', {})
     m2_stats = report_data.get('manager2_overall_stats', {})
+    
     md += f"## Overall Performance Comparison\n"
     md += f"| Metric                  | {m1.name:<20} | {m2.name:<20} |\n"
     md += f"|-------------------------|-----------------------|-----------------------|\n"
     md += f"| Average GW Points       | {m1_stats.get('average_gameweek_points', 0.0):<20.2f} | {m2_stats.get('average_gameweek_points', 0.0):<20.2f} |\n"
-    md += f"| Consistency (Std Dev)   | {m1_stats.get('consistency_std_dev_points', 0.0):<20.2f} | {m2_stats.get('consistency_std_dev_points', 0.0):<20.2f} |\n"
-    md += f"| Form (Last 3GW Avg)     | {m1_stats.get('form_last_3_gw', 0.0):<20.2f} | {m2_stats.get('form_last_3_gw', 0.0):<20.2f} |\n"
-    md += f"| Total Transfers Made    | {m1_stats.get('transfer_analysis', {}).get('total_transfers_made', 'N/A'):<20} | {m2_stats.get('transfer_analysis', {}).get('total_transfers_made', 'N/A'):<20} |\n"
+    md += f"| Consistency (Std Dev)   | {m1_stats.get('consistency_stdev', 0.0):<20.2f} | {m2_stats.get('consistency_stdev', 0.0):<20.2f} |\n"
+    md += f"| Form (Last 5GW Avg)     | {m1_stats.get('form_last_5_gws', 0.0):<20.2f} | {m2_stats.get('form_last_5_gws', 0.0):<20.2f} |\n"
+    md += f"| Total Transfers Made    | {m1_stats.get('transfer_analysis', {}).get('total_transfers', 'N/A'):<20} | {m2_stats.get('transfer_analysis', {}).get('total_transfers', 'N/A'):<20} |\n"
     md += f"| Total Hits Cost         | {m1_stats.get('transfer_analysis', {}).get('total_hits_cost', 'N/A'):<20} | {m2_stats.get('transfer_analysis', {}).get('total_hits_cost', 'N/A'):<20} |\n"
-    # md += f"| Captain Success Rate    | {m1_stats.get('captain_success_rate_estimate', 'N/A'):<20} | {m2_stats.get('captain_success_rate_estimate', 'N/A'):<20} |\n" # Placeholder
+    md += f"| Current Team Value      | £{m1_stats.get('current_team_value', 'N/A'):<19}m | £{m2_stats.get('current_team_value', 'N/A'):<19}m |\n"
+    md += f"| Bank                    | £{m1_stats.get('bank', 'N/A'):<19}m | £{m2_stats.get('bank', 'N/A'):<19}m |\n"
     md += "\n"
 
-    # Differentials (simplified)
+    # Chips Used
+    md += f"## Chips Used This Season\n"
+    m1_chips = m1_stats.get('chips_used_this_season', [])
+    m2_chips = m2_stats.get('chips_used_this_season', [])
+    md += f"- {m1.name}: {', '.join(m1_chips) if m1_chips else 'None'}\n"
+    md += f"- {m2.name}: {', '.join(m2_chips) if m2_chips else 'None'}\n\n"
+
+    # Differentials
     diffs = report_data.get('latest_gw_differentials')
     md += f"## Latest Gameweek ({gw}) Differentials\n"
-    if isinstance(diffs, dict):
-        md += f"### {m1.name}'s Differentials (Players in {m1.name}'s XI, not in {m2.name}'s XI):\n"
-        for p in diffs.get('manager1_differentials', []): md += f"- {p.get('name', 'Unknown')} (ID: {p.get('id')})\n"
-        if not diffs.get('manager1_differentials'): md += "- None\n"
-        md += f"\n### {m2.name}'s Differentials (Players in {m2.name}'s XI, not in {m1.name}'s XI):\n"
-        for p in diffs.get('manager2_differentials', []): md += f"- {p.get('name', 'Unknown')} (ID: {p.get('id')})\n"
-        if not diffs.get('manager2_differentials'): md += "- None\n"
-        md += f"\n### Shared Players (in XI):\n"
-        for p in diffs.get('shared_players', []): md += f"- {p.get('name', 'Unknown')} (ID: {p.get('id')})\n"
-        if not diffs.get('shared_players'): md += "- None\n"
-        md += f"\n### Captaincy:\n"
-        md += f"- {m1.name}'s Captain: {diffs.get('manager1_captain', {}).get('name', 'N/A')}\n"
-        md += f"- {m2.name}'s Captain: {diffs.get('manager2_captain', {}).get('name', 'N/A')}\n"
-        md += f"- Captains are Differential: {'Yes' if diffs.get('captain_is_differential') else 'No'}\n\n"
-    elif isinstance(diffs, str): # Handle error messages or unavailability string
-        md += f"- {diffs}\n\n"
-    else:
-        md += f"- Differential data not available or in unexpected format.\n\n"
+    
+    if isinstance(diffs, dict) and 'manager1_differentials' in diffs:
+        # Manager 1 Differentials
+        md += f"### {m1.name}'s Exclusive Players:\n"
+        if diffs.get('manager1_differentials'):
+            for p in diffs['manager1_differentials']:
+                md += f"- {p.get('name', 'Unknown')} (ID: {p.get('id')})\n"
+        else:
+            md += "- None\n"
+        
+        # Manager 2 Differentials    
+        md += f"\n### {m2.name}'s Exclusive Players:\n"
+        if diffs.get('manager2_differentials'):
+            for p in diffs['manager2_differentials']:
+                md += f"- {p.get('name', 'Unknown')} (ID: {p.get('id')})\n"
+        else:
+            md += "- None\n"
+        
+        # Shared Players
+        md += f"\n### Shared Players:\n"
+        if diffs.get('shared_players'):
+            for p in diffs['shared_players']:
+                md += f"- {p.get('name', 'Unknown')} (ID: {p.get('id')})\n"
+        else:
+            md += "- None\n"
+        
+        # Captaincy Analysis
+        md += f"\n### Captaincy Choices:\n"
+        m1_captain = diffs.get('manager1_captain', {})
+        m2_captain = diffs.get('manager2_captain', {})
+        
+        # Fix for captain display 
+        m1_captain_name = m1_captain.get('name', 'Unknown') if m1_captain else 'Unknown' 
+        m2_captain_name = m2_captain.get('name', 'Unknown') if m2_captain else 'Unknown' 
+        m1_vc_name = diffs.get('manager1_vice_captain', {}).get('name', 'Unknown') if diffs.get('manager1_vice_captain') else 'Unknown' 
+        m2_vc_name = diffs.get('manager2_vice_captain', {}).get('name', 'Unknown') if diffs.get('manager2_vice_captain') else 'Unknown' 
+        
+        md += f"- {m1.name}'s Captain: {m1_captain_name} (VC: {m1_vc_name})\n"
+        md += f"- {m2.name}'s Captain: {m2_captain_name} (VC: {m2_vc_name})\n"
+        
+        if diffs.get('captain_is_differential'):
+            md += f"- **Differential Captain Alert!** The managers have different captains.\n"
+        else:
+            md += f"- Both managers captained the same player.\n"
+            
+    elif isinstance(diffs, str):
+        md += f"- {diffs}\n"
+    md += "\n"
 
-    # Momentum
+    # Momentum Analysis
     m1_mom = report_data.get('manager1_momentum', {})
     m2_mom = report_data.get('manager2_momentum', {})
-    md += f"## Momentum (Last {m1_mom.get('h2h_matches_considered_for_momentum', 'N')} GWs considered for H2H wins)\n"
+    
+    md += f"## Momentum Analysis\n"
     md += f"| Metric                  | {m1.name:<20} | {m2.name:<20} |\n"
     md += f"|-------------------------|-----------------------|-----------------------|\n"
     md += f"| H2H Wins (Recent)       | {m1_mom.get('h2h_wins_last_n_gws', 'N/A'):<20} | {m2_mom.get('h2h_wins_last_n_gws', 'N/A'):<20} |\n"

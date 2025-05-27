@@ -1,0 +1,195 @@
+{
+  "manager1_info": {
+    "id": 3528194,
+    "name": "Izunna Uzokwe",
+    "team_name": "Explosive United FC",
+    "overall_rank": 2159066,
+    "overall_points": 2196
+  },
+  "manager2_info": {
+    "id": 2136571,
+    "name": "Chris Danquah",
+    "team_name": "Big Splash",
+    "overall_rank": 1511785,
+    "overall_points": 2245
+  },
+  "manager1_overall_stats": {
+    "manager_id": 3528194,
+    "manager_name": "Izunna Uzokwe",
+    "team_name": "Explosive United FC",
+    "overall_rank": 2159066,
+    "total_points": 2196,
+    "average_gameweek_points": 58.21052631578947,
+    "consistency_stdev": 20.553368757531516,
+    "form_last_5_gws": 42.2,
+    "transfer_analysis": {
+      "total_transfers": 37,
+      "total_hits_cost": 16,
+      "average_transfers_per_gw": 0.9736842105263158,
+      "gameweeks_with_hits": 0
+    },
+    "chips_used_this_season": [
+      "wildcard",
+      "manager",
+      "wildcard",
+      "3xc",
+      "freehit",
+      "bboost"
+    ],
+    "last_gameweek_points": 0,
+    "current_team_value": 102.1,
+    "bank": 1.4
+  },
+  "manager2_overall_stats": {
+    "manager_id": 2136571,
+    "manager_name": "Chris Danquah",
+    "team_name": "Big Splash",
+    "overall_rank": 1511785,
+    "total_points": 2245,
+    "average_gameweek_points": 59.078947368421055,
+    "consistency_stdev": 24.226835220638414,
+    "form_last_5_gws": 46.8,
+    "transfer_analysis": {
+      "total_transfers": 32,
+      "total_hits_cost": 0,
+      "average_transfers_per_gw": 0.8421052631578947,
+      "gameweeks_with_hits": 0
+    },
+    "chips_used_this_season": [
+      "bboost",
+      "wildcard",
+      "manager",
+      "wildcard",
+      "freehit",
+      "3xc"
+    ],
+    "last_gameweek_points": 0,
+    "current_team_value": 100.8,
+    "bank": 2.8
+  },
+  "h2h_record": {
+    "manager1_id": 3528194,
+    "manager2_id": 2136571,
+    "matches_played": 2,
+    "manager1_wins": 1,
+    "manager2_wins": 1,
+    "draws": 0,
+    "manager1_total_fpl_points_in_h2h": 176,
+    "manager2_total_fpl_points_in_h2h": 174,
+    "manager1_avg_fpl_points_in_h2h": 88.0,
+    "manager2_avg_fpl_points_in_h2h": 87.0
+  },
+  "latest_gw_differentials": {
+    "manager1_differentials": [
+      {
+        "id": 585,
+        "name": "I.Sarr"
+      },
+      {
+        "id": 207,
+        "name": "Mateta"
+      },
+      {
+        "id": 211,
+        "name": "Mu\u00f1oz"
+      },
+      {
+        "id": 54,
+        "name": "Rogers"
+      },
+      {
+        "id": 443,
+        "name": "Sels"
+      },
+      {
+        "id": 573,
+        "name": "Milenkovi\u0107"
+      },
+      {
+        "id": 350,
+        "name": "Gvardiol"
+      },
+      {
+        "id": 447,
+        "name": "Wood"
+      }
+    ],
+    "manager2_differentials": [
+      {
+        "id": 70,
+        "name": "Kerkez"
+      },
+      {
+        "id": 199,
+        "name": "Eze"
+      },
+      {
+        "id": 366,
+        "name": "B.Fernandes"
+      },
+      {
+        "id": 110,
+        "name": "Wissa"
+      },
+      {
+        "id": 15,
+        "name": "Raya"
+      },
+      {
+        "id": 533,
+        "name": "A\u00eft-Nouri"
+      },
+      {
+        "id": 409,
+        "name": "Livramento"
+      },
+      {
+        "id": 252,
+        "name": "Ra\u00fal"
+      }
+    ],
+    "shared_players": [
+      {
+        "id": 328,
+        "name": "M.Salah"
+      },
+      {
+        "id": 401,
+        "name": "Isak"
+      },
+      {
+        "id": 99,
+        "name": "Mbeumo"
+      }
+    ],
+    "manager1_captain": {
+      "id": 207,
+      "name": "Mateta"
+    },
+    "manager2_captain": {
+      "id": 99,
+      "name": "Mbeumo"
+    },
+    "captain_is_differential": true,
+    "manager1_vice_captain": {
+      "id": 99,
+      "name": "Mbeumo"
+    },
+    "manager2_vice_captain": {
+      "id": 366,
+      "name": "B.Fernandes"
+    }
+  },
+  "manager1_momentum": {
+    "manager_id": 3528194,
+    "h2h_wins_last_n_gws": 1,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 35.33
+  },
+  "manager2_momentum": {
+    "manager_id": 2136571,
+    "h2h_wins_last_n_gws": 1,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 37.33
+  }
+}

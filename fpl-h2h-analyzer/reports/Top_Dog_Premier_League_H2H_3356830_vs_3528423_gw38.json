@@ -1,0 +1,135 @@
+{
+  "manager1_info": {
+    "id": 3356830,
+    "name": "Abdul Nasir",
+    "team_name": "Nasir FC **",
+    "overall_rank": 60142,
+    "overall_points": null
+  },
+  "manager2_info": {
+    "id": 3528423,
+    "name": "Jason Baaphy",
+    "team_name": "Cok\u00e8 Athletic**",
+    "overall_rank": 204785,
+    "overall_points": null
+  },
+  "manager1_overall_stats": {
+    "error": "No gameweek history available for this manager.",
+    "manager_id": 3356830,
+    "manager_name": "Abdul Nasir"
+  },
+  "manager2_overall_stats": {
+    "error": "No gameweek history available for this manager.",
+    "manager_id": 3528423,
+    "manager_name": "Jason Baaphy"
+  },
+  "h2h_record": {
+    "manager1_id": 3356830,
+    "manager2_id": 3528423,
+    "matches_played": 0,
+    "manager1_wins": 0,
+    "manager2_wins": 0,
+    "draws": 0,
+    "manager1_total_fpl_points_in_h2h": 0,
+    "manager2_total_fpl_points_in_h2h": 0,
+    "manager1_avg_fpl_points_in_h2h": 0,
+    "manager2_avg_fpl_points_in_h2h": 0
+  },
+  "latest_gw_differentials": {
+    "manager1_differentials": [
+      {
+        "id": 8,
+        "name": "Kiwior"
+      },
+      {
+        "id": 617,
+        "name": "Evanilson"
+      },
+      {
+        "id": 409,
+        "name": "Livramento"
+      },
+      {
+        "id": 388,
+        "name": "Wan-Bissaka"
+      }
+    ],
+    "manager2_differentials": [
+      {
+        "id": 78,
+        "name": "Semenyo"
+      },
+      {
+        "id": 395,
+        "name": "Burn"
+      },
+      {
+        "id": 70,
+        "name": "Kerkez"
+      },
+      {
+        "id": 350,
+        "name": "Gvardiol"
+      }
+    ],
+    "shared_players": [
+      {
+        "id": 514,
+        "name": "Bowen"
+      },
+      {
+        "id": 99,
+        "name": "Mbeumo"
+      },
+      {
+        "id": 328,
+        "name": "M.Salah"
+      },
+      {
+        "id": 15,
+        "name": "Raya"
+      },
+      {
+        "id": 401,
+        "name": "Isak"
+      },
+      {
+        "id": 54,
+        "name": "Rogers"
+      },
+      {
+        "id": 58,
+        "name": "Watkins"
+      }
+    ],
+    "manager1_captain": {
+      "id": 328,
+      "name": "M.Salah"
+    },
+    "manager2_captain": {
+      "id": 328,
+      "name": "M.Salah"
+    },
+    "captain_is_differential": false,
+    "manager1_vice_captain": {
+      "id": 514,
+      "name": "Bowen"
+    },
+    "manager2_vice_captain": {
+      "id": 58,
+      "name": "Watkins"
+    }
+  },
+  "manager1_momentum": {
+    "manager_id": 3356830,
+    "h2h_wins_last_n_gws": 1,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 0.0
+  },
+  "manager2_momentum": {
+    "manager_id": 3528423,
+    "h2h_wins_last_n_gws": 2,
+    "h2h_matches_considered_for_momentum": 3,
+    "fpl_points_form_last_n_gws": 0.0
+  }
+}
