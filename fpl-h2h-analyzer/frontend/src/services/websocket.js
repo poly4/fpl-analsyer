@@ -33,10 +33,21 @@ class WebSocketService {
 
     return new Promise((resolve, reject) => {
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.hostname;
-        const port = process.env.NODE_ENV === 'development' ? ':8000' : '';
-        const wsUrl = `${protocol}//${host}${port}/ws/connect`;
+        // Determine WebSocket URL based on environment
+        let wsUrl;
+        
+        if (process.env.NODE_ENV === 'development' && window.location.port === '5173') {
+          // Vite dev server - connect directly to backend
+          wsUrl = 'ws://localhost:8000/ws/connect';
+        } else if (window.location.hostname === 'localhost' && window.location.port === '3000') {
+          // Docker development - connect through Nginx proxy
+          wsUrl = `ws://localhost:3000/ws/connect`;
+        } else {
+          // Production - use relative path with appropriate protocol
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const host = window.location.host; // includes port if non-standard
+          wsUrl = `${protocol}//${host}/ws/connect`;
+        }
 
         console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
         
