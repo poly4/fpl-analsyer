@@ -165,33 +165,48 @@ The application uses the following services:
 
 ## 🎯 Usage Guide
 
+### Navigation
+The app uses **tab-based navigation** within a single page. All features are accessible through tabs at the top of the dashboard:
+
 ### Viewing Live Battles
-1. Navigate to the "All Battles" tab
+1. Click the **"All Battles"** tab (second tab)
 2. Select the desired gameweek from the dropdown (defaults to current GW)
-3. View real-time updates if matches are live
-4. Click on any battle card for detailed analysis
+3. View all H2H matches for your league
+4. Each battle card shows:
+   - Current scores
+   - Manager names
+   - Chip usage
+   - Live/Completed status
+5. Click on any battle card to expand analytics (if available)
 
 ### League Table
-1. Go to the "League Table" tab
-2. View complete standings with:
-   - Position and points
+1. Click the **"League Table"** tab (third tab)
+2. View complete H2H standings:
+   - Current position and total points
    - Win/Draw/Loss records
    - Points for and against
-   - Form indicators
+   - Visual indicators for top 3 positions
 
 ### Analytics Dashboard
-1. Click on the "Analytics" tab
-2. View league-wide statistics:
-   - Top and bottom performers
-   - Average points analysis
-   - Form trends
-3. Generate PDF reports for any two managers
+1. Click the **"Analytics"** tab (fourth tab)
+2. View league-wide performance metrics:
+   - Top scorers and performers
+   - Win rate analysis
+   - Form tracking
+3. Generate H2H reports:
+   - Click "Generate H2H Report" button
+   - Select two managers from dropdowns
+   - Click "Generate Report" to create PDF
 
 ### Manager Comparison
-1. Use the "Manager Comparison" tab
-2. Select two managers from the dropdown
-3. View detailed head-to-head analysis
-4. Export comparison as PDF/CSV
+1. Click the **"Manager Comparison"** tab (first tab)
+2. Select exactly 2 managers from the table
+3. Click "Compare Selected" button
+4. View detailed analysis:
+   - Head-to-head record
+   - Squad comparison
+   - Differential players
+   - Performance trends
 
 ## 🐛 Troubleshooting
 
@@ -254,7 +269,33 @@ For issues, questions, or contributions:
 - Contact the maintainers
 - Join our Discord community (coming soon)
 
+## 📊 Current Implementation Status
+
+### ✅ Working Features
+- **Live H2H Battles**: Real-time score tracking with WebSocket updates
+- **Historical Analysis**: View battles from any gameweek (GW1-38)
+- **League Table**: Complete H2H standings with statistics  
+- **Analytics Dashboard**: Performance insights and report generation
+- **Report Generation**: Export H2H analysis as PDF/CSV/JSON
+- **Comprehensive Analytics**: Differential analysis, predictions, patterns
+- **Caching System**: Redis + file-based caching for performance
+
+### 🚧 Known Limitations
+- **Single League**: Currently hardcoded to league ID 620117
+- **No Authentication**: Public leagues only
+- **No Rate Limiting**: May hit FPL API limits with heavy usage
+- **Limited API Coverage**: Using 8 of 20+ available FPL endpoints
+
+See [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) for detailed implementation status and roadmap.
+
 ## 🎉 Recent Updates
+
+### v3.0.1 (May 27, 2025) - Fixes & Documentation
+- **FIXED**: Visualization API endpoint error
+- **FIXED**: Clarified navigation - all features use tabs, not routes
+- **ADDED**: Comprehensive technical debt documentation
+- **ADDED**: Clear usage instructions for each feature
+- **VERIFIED**: All core features working as expected
 
 ### v3.0 (May 27, 2025)
 - **NEW**: League Table tab with complete standings and statistics

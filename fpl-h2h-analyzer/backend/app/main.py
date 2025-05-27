@@ -729,6 +729,9 @@ async def get_h2h_visualization_data(
         if not enhanced_h2h_analyzer:
             raise HTTPException(status_code=503, detail="Analytics service not initialized")
             
+        if gameweek is None:
+            gameweek = await live_data_service.get_current_gameweek()
+            
         # Get comprehensive analysis
         analysis = await enhanced_h2h_analyzer.analyze_battle_comprehensive(
             manager1_id,
@@ -736,77 +739,90 @@ async def get_h2h_visualization_data(
             gameweek
         )
         
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Could not generate analysis")
+        
+        # Extract data from the dictionary structure
+        meta = analysis.get("meta", {})
+        core = analysis.get("core_analysis", {})
+        differential = analysis.get("differential_analysis", {})
+        prediction = analysis.get("prediction", {})
+        summary = analysis.get("summary", {})
+        
         # Format for visualization
         viz_data = {
             "overview": {
-                "gameweek": analysis.gameweek,
+                "gameweek": meta.get("gameweek", gameweek),
                 "manager1": {
                     "id": manager1_id,
-                    "name": analysis.manager1_name,
-                    "score": analysis.current_scores["manager1"]["total"]
+                    "name": core.get("manager1", {}).get("name", "Unknown"),
+                    "score": core.get("manager1", {}).get("score", {}).get("total", 0)
                 },
                 "manager2": {
                     "id": manager2_id,
-                    "name": analysis.manager2_name,
-                    "score": analysis.current_scores["manager2"]["total"]
+                    "name": core.get("manager2", {}).get("name", "Unknown"),
+                    "score": core.get("manager2", {}).get("score", {}).get("total", 0)
                 },
-                "advantage_score": analysis.advantage_score,
-                "confidence": analysis.confidence_level
+                "advantage_score": summary.get("advantage_score", 0),
+                "confidence": summary.get("confidence_level", 0)
             },
             "differentials": {
                 "unique_to_m1": [
                     {
-                        "player_name": p.player_name,
-                        "team": p.team_name,
-                        "position": p.position,
-                        "points": p.current_points,
-                        "strategic_value": p.strategic_value,
-                        "risk_score": p.risk_score,
-                        "reward_score": p.reward_score
-                    } for p in analysis.differential_analysis.unique_to_manager1[:10]
+                        "player_name": p.get("name", "Unknown"),
+                        "team": p.get("team", "Unknown"),
+                        "position": p.get("position", "Unknown"),
+                        "points": p.get("live_points", 0),
+                        "strategic_value": p.get("strategic_value", 0),
+                        "risk_score": p.get("risk_score", 0),
+                        "reward_score": p.get("reward_score", 0)
+                    } for p in differential.get("manager1_differentials", [])[:10]
                 ],
                 "unique_to_m2": [
                     {
-                        "player_name": p.player_name,
-                        "team": p.team_name,
-                        "position": p.position,
-                        "points": p.current_points,
-                        "strategic_value": p.strategic_value,
-                        "risk_score": p.risk_score,
-                        "reward_score": p.reward_score
-                    } for p in analysis.differential_analysis.unique_to_manager2[:10]
+                        "player_name": p.get("name", "Unknown"),
+                        "team": p.get("team", "Unknown"),
+                        "position": p.get("position", "Unknown"),
+                        "points": p.get("live_points", 0),
+                        "strategic_value": p.get("strategic_value", 0),
+                        "risk_score": p.get("risk_score", 0),
+                        "reward_score": p.get("reward_score", 0)
+                    } for p in differential.get("manager2_differentials", [])[:10]
                 ],
                 "captain_differential": {
-                    "exists": analysis.differential_analysis.captain_differential is not None,
-                    "swing_potential": analysis.differential_analysis.captain_swing_potential
+                    "exists": differential.get("captain_analysis", {}).get("same_captain", True) == False,
+                    "swing_potential": differential.get("captain_analysis", {}).get("net_captain_advantage", 0)
                 }
             },
             "predictions": {
                 "win_probabilities": {
-                    "manager1": analysis.prediction.win_probability_m1,
-                    "manager2": analysis.prediction.win_probability_m2,
-                    "draw": analysis.prediction.draw_probability
-                } if analysis.prediction else None,
+                    "manager1": prediction.get("manager1_win_probability", 0.5),
+                    "manager2": prediction.get("manager2_win_probability", 0.5),
+                    "draw": prediction.get("draw_probability", 0)
+                } if prediction else {
+                    "manager1": 0.5,
+                    "manager2": 0.5,
+                    "draw": 0
+                },
                 "expected_scores": {
                     "manager1": {
-                        "total": analysis.prediction.manager1_prediction.expected_total_points,
-                        "confidence_interval": analysis.prediction.manager1_prediction.confidence_interval
+                        "total": prediction.get("manager1_expected_points", 0),
+                        "confidence_interval": prediction.get("margin_confidence_interval_95", [0, 0])
                     },
                     "manager2": {
-                        "total": analysis.prediction.manager2_prediction.expected_total_points,
-                        "confidence_interval": analysis.prediction.manager2_prediction.confidence_interval
+                        "total": prediction.get("manager2_expected_points", 0),
+                        "confidence_interval": prediction.get("margin_confidence_interval_95", [0, 0])
                     }
-                } if analysis.prediction else None
+                } if prediction else None
             },
             "insights": {
-                "battlegrounds": analysis.key_battlegrounds[:5],
-                "opportunities": analysis.opportunity_windows[:5],
-                "risks": analysis.risk_assessment["key_risks"][:5] if "key_risks" in analysis.risk_assessment else []
+                "key_insights": summary.get("key_insights", [])[:5],
+                "decisive_players": prediction.get("decisive_players_m1", []) + prediction.get("decisive_players_m2", [])
             },
             "metrics": {
-                "volatility_index": analysis.volatility_index,
-                "strategic_complexity": analysis.strategic_complexity,
-                "defensive_coverage": analysis.differential_analysis.defensive_coverage
+                "score_difference": core.get("score_difference", 0),
+                "total_psc_swing": differential.get("total_psc_swing", {}).get("net_advantage", 0),
+                "differentials_count": len(core.get("differentials", []))
             }
         }
         
