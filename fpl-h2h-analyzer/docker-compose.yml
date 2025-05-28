@@ -8,7 +8,6 @@ services:
       - FPL_API_BASE_URL=https://fantasy.premierleague.com/api/
     depends_on:
       - redis
-      - postgres
 
   frontend:
     build: ./frontend
@@ -18,16 +17,16 @@ services:
       - backend
     environment:
       - NODE_ENV=production
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8000
 
   redis:
     image: redis:7-alpine
-
-  postgres:
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=fpl
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
 
 volumes:
   redis_data:

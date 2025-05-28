@@ -535,12 +535,8 @@ class H2HAnalyzer:
         # Fetch all pages of matches
         while True:
             try:
-                endpoint = f"leagues-h2h-matches/league/{league_id}"
-                params = None
-                if page > 1:
-                    params = {"page": page}
-                    
-                data = await self.live_data_service._fetch_data_with_caching(endpoint, params)
+                # Use the live_data_service method instead of internal _fetch_data_with_caching
+                data = await self.live_data_service.get_h2h_matches(league_id, page)
                 
                 if not data or 'results' not in data:
                     break

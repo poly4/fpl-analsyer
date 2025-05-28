@@ -2,14 +2,16 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Set, Any
-from dataclasses import dataclass, asdict
+from typing import Dict, List, Optional, Set, Any, Callable
+from dataclasses import dataclass, asdict, field
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect, status
 import uvloop
+from starlette.websockets import WebSocketState
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +24,13 @@ class MessageType(str, Enum):
     CONNECTION_ACK = "connection_ack"
     ERROR = "error"
     HEARTBEAT = "heartbeat"
+    PING = "ping"
+    PONG = "pong"
     SUBSCRIBE = "subscribe"
     UNSUBSCRIBE = "unsubscribe"
+    RECONNECT = "reconnect"
+    CONNECTION_STATE = "connection_state"
+    RATE_LIMIT = "rate_limit"
 
 @dataclass
 class WebSocketMessage:
@@ -47,6 +54,15 @@ class WebSocketMessage:
         return cls(**parsed)
 
 @dataclass
+class ConnectionState(str, Enum):
+    """Connection states for tracking"""
+    CONNECTING = "connecting"
+    CONNECTED = "connected"
+    RECONNECTING = "reconnecting"
+    DISCONNECTED = "disconnected"
+    FAILED = "failed"
+
+@dataclass
 class ClientConnection:
     """Represents a connected WebSocket client"""
     websocket: WebSocket
@@ -56,22 +72,52 @@ class ClientConnection:
     subscribed_rooms: Set[str]
     user_agent: Optional[str] = None
     ip_address: Optional[str] = None
+    state: ConnectionState = ConnectionState.CONNECTING
+    reconnection_token: Optional[str] = None
+    reconnection_count: int = 0
+    last_ping_sent: Optional[float] = None
+    ping_latency: Optional[float] = None
+    message_count: int = 0
+    rate_limit_reset: float = field(default_factory=time.time)
     
     def __post_init__(self):
         if not self.subscribed_rooms:
             self.subscribed_rooms = set()
+        if not self.reconnection_token:
+            self.reconnection_token = str(uuid.uuid4())
 
 class WebSocketManager:
     """Production-ready WebSocket manager with connection pooling and room support"""
     
-    def __init__(self, max_connections: int = 1000, heartbeat_interval: int = 30):
+    def __init__(self, 
+                 max_connections: int = 1000, 
+                 heartbeat_interval: int = 30,
+                 ping_interval: int = 10,
+                 ping_timeout: int = 5,
+                 reconnection_window: int = 300,  # 5 minutes
+                 rate_limit_messages: int = 100,
+                 rate_limit_window: int = 60):  # per minute
         self.max_connections = max_connections
         self.heartbeat_interval = heartbeat_interval
+        self.ping_interval = ping_interval
+        self.ping_timeout = ping_timeout
+        self.reconnection_window = reconnection_window
+        self.rate_limit_messages = rate_limit_messages
+        self.rate_limit_window = rate_limit_window
         
         # Connection management
         self.active_connections: Dict[str, ClientConnection] = {}
         self.rooms: Dict[str, Set[str]] = defaultdict(set)  # room_id -> set of client_ids
         self.client_rooms: Dict[str, Set[str]] = defaultdict(set)  # client_id -> set of room_ids
+        
+        # Reconnection support
+        self.reconnection_tokens: Dict[str, str] = {}  # token -> client_id
+        self.disconnected_clients: Dict[str, Dict[str, Any]] = {}  # client_id -> connection info
+        
+        # Connection state callbacks
+        self.on_connect_callbacks: List[Callable] = []
+        self.on_disconnect_callbacks: List[Callable] = []
+        self.on_reconnect_callbacks: List[Callable] = []
         
         # Statistics and monitoring
         self.connection_count = 0
@@ -87,33 +133,43 @@ class WebSocketManager:
         # Background tasks
         self._heartbeat_task: Optional[asyncio.Task] = None
         self._cleanup_task: Optional[asyncio.Task] = None
+        self._ping_task: Optional[asyncio.Task] = None
+        self._metrics_task: Optional[asyncio.Task] = None
+        
+        # Metrics
+        self.connection_latencies: List[float] = []
+        self.max_concurrent_connections = 0
         
     async def start_background_tasks(self):
-        """Start background tasks for heartbeat and cleanup"""
+        """Start background tasks for heartbeat, ping, cleanup, and metrics"""
         if self._heartbeat_task is None:
             self._heartbeat_task = asyncio.create_task(self._heartbeat_worker())
         if self._cleanup_task is None:
             self._cleanup_task = asyncio.create_task(self._cleanup_worker())
+        if self._ping_task is None:
+            self._ping_task = asyncio.create_task(self._ping_worker())
+        if self._metrics_task is None:
+            self._metrics_task = asyncio.create_task(self._metrics_worker())
     
     async def stop_background_tasks(self):
         """Stop background tasks gracefully"""
-        if self._heartbeat_task:
-            self._heartbeat_task.cancel()
-            try:
-                await self._heartbeat_task
-            except asyncio.CancelledError:
-                pass
-            self._heartbeat_task = None
-            
-        if self._cleanup_task:
-            self._cleanup_task.cancel()
-            try:
-                await self._cleanup_task
-            except asyncio.CancelledError:
-                pass
-            self._cleanup_task = None
+        tasks = [
+            ('heartbeat', self._heartbeat_task),
+            ('cleanup', self._cleanup_task),
+            ('ping', self._ping_task),
+            ('metrics', self._metrics_task)
+        ]
+        
+        for task_name, task in tasks:
+            if task:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                setattr(self, f'_{task_name}_task', None)
     
-    async def connect(self, websocket: WebSocket, client_id: str) -> bool:
+    async def connect(self, websocket: WebSocket, client_id: str, reconnection_token: Optional[str] = None) -> bool:
         """Connect a new WebSocket client with rate limiting"""
         if len(self.active_connections) >= self.max_connections:
             logger.warning(f"Connection limit reached. Rejecting client {client_id}")
@@ -128,28 +184,59 @@ class WebSocketManager:
             user_agent = headers.get("user-agent")
             ip_address = getattr(websocket.client, 'host', None) if websocket.client else None
             
+            # Handle reconnection
+            is_reconnection = False
+            previous_rooms = set()
+            
+            if reconnection_token and reconnection_token in self.reconnection_tokens:
+                old_client_id = self.reconnection_tokens[reconnection_token]
+                if old_client_id in self.disconnected_clients:
+                    disconnected_info = self.disconnected_clients[old_client_id]
+                    if time.time() - disconnected_info['disconnected_at'] <= self.reconnection_window:
+                        is_reconnection = True
+                        previous_rooms = disconnected_info['rooms']
+                        # Clean up old data
+                        del self.disconnected_clients[old_client_id]
+                        del self.reconnection_tokens[reconnection_token]
+            
             # Create client connection
             connection = ClientConnection(
                 websocket=websocket,
                 client_id=client_id,
                 connected_at=time.time(),
                 last_heartbeat=time.time(),
-                subscribed_rooms=set(),
+                subscribed_rooms=previous_rooms,
                 user_agent=user_agent,
-                ip_address=ip_address
+                ip_address=ip_address,
+                state=ConnectionState.CONNECTED,
+                reconnection_count=1 if is_reconnection else 0
             )
             
             self.active_connections[client_id] = connection
             self.connection_count += 1
             self.total_connections += 1
+            self.reconnection_tokens[connection.reconnection_token] = client_id
+            
+            # Update max concurrent connections
+            self.max_concurrent_connections = max(self.max_concurrent_connections, self.connection_count)
+            
+            # Re-subscribe to previous rooms if reconnecting
+            if is_reconnection:
+                for room_id in previous_rooms:
+                    self.rooms[room_id].add(client_id)
+                    self.client_rooms[client_id].add(room_id)
             
             # Send connection acknowledgment
             ack_message = WebSocketMessage(
-                type=MessageType.CONNECTION_ACK,
+                type=MessageType.CONNECTION_ACK if not is_reconnection else MessageType.RECONNECT,
                 data={
                     "client_id": client_id,
+                    "reconnection_token": connection.reconnection_token,
                     "server_time": datetime.utcnow().isoformat(),
-                    "heartbeat_interval": self.heartbeat_interval
+                    "heartbeat_interval": self.heartbeat_interval,
+                    "ping_interval": self.ping_interval,
+                    "is_reconnection": is_reconnection,
+                    "subscribed_rooms": list(connection.subscribed_rooms)
                 },
                 client_id=client_id
             )
@@ -158,31 +245,59 @@ class WebSocketManager:
             # Process any queued messages
             await self._process_queued_messages(client_id)
             
-            logger.info(f"Client {client_id} connected. Total connections: {self.connection_count}")
+            # Send connection state update
+            await self._broadcast_connection_state(client_id, ConnectionState.CONNECTED)
+            
+            # Execute callbacks
+            callback_type = self.on_reconnect_callbacks if is_reconnection else self.on_connect_callbacks
+            for callback in callback_type:
+                asyncio.create_task(callback(client_id, connection))
+            
+            logger.info(f"Client {client_id} {'reconnected' if is_reconnection else 'connected'}. Total connections: {self.connection_count}")
             return True
             
         except Exception as e:
             logger.error(f"Error connecting client {client_id}: {e}")
             return False
     
-    async def disconnect(self, client_id: str):
+    async def disconnect(self, client_id: str, save_state: bool = True):
         """Disconnect a WebSocket client and cleanup"""
         if client_id not in self.active_connections:
             return
         
         connection = self.active_connections[client_id]
+        connection.state = ConnectionState.DISCONNECTED
+        
+        # Save state for reconnection if requested
+        if save_state and connection.reconnection_token:
+            self.disconnected_clients[client_id] = {
+                'disconnected_at': time.time(),
+                'rooms': connection.subscribed_rooms.copy(),
+                'reconnection_token': connection.reconnection_token
+            }
         
         # Remove from all rooms
         for room_id in list(connection.subscribed_rooms):
             await self._remove_from_room(client_id, room_id)
         
         # Clean up connection
+        if connection.reconnection_token in self.reconnection_tokens:
+            if not save_state:
+                del self.reconnection_tokens[connection.reconnection_token]
+        
         del self.active_connections[client_id]
         self.connection_count -= 1
         
-        # Clear message queue to prevent memory leaks
-        if client_id in self.message_queues:
+        # Clear message queue if not saving state
+        if not save_state and client_id in self.message_queues:
             del self.message_queues[client_id]
+        
+        # Send connection state update
+        await self._broadcast_connection_state(client_id, ConnectionState.DISCONNECTED)
+        
+        # Execute callbacks
+        for callback in self.on_disconnect_callbacks:
+            asyncio.create_task(callback(client_id, connection))
         
         logger.info(f"Client {client_id} disconnected. Total connections: {self.connection_count}")
     
@@ -242,19 +357,39 @@ class WebSocketManager:
             await self._queue_message(client_id, message)
             return False
         
+        connection = self.active_connections[client_id]
+        
+        # Check rate limit
+        if not await self._check_rate_limit(client_id):
+            rate_limit_msg = WebSocketMessage(
+                type=MessageType.RATE_LIMIT,
+                data={"retry_after": self.rate_limit_window},
+                client_id=client_id
+            )
+            try:
+                await connection.websocket.send_text(rate_limit_msg.to_json())
+            except:
+                pass
+            return False
+        
         try:
-            connection = self.active_connections[client_id]
+            # Check if websocket is still open
+            if connection.websocket.client_state != WebSocketState.CONNECTED:
+                await self.disconnect(client_id, save_state=True)
+                return False
+            
             await connection.websocket.send_text(message.to_json())
             self.total_messages_sent += 1
+            connection.message_count += 1
             return True
             
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected during send")
-            await self.disconnect(client_id)
+            await self.disconnect(client_id, save_state=True)
             return False
         except Exception as e:
             logger.error(f"Error sending message to client {client_id}: {e}")
-            await self.disconnect(client_id)
+            await self.disconnect(client_id, save_state=True)
             return False
     
     async def broadcast_to_room(self, room_id: str, message: WebSocketMessage, exclude_client: Optional[str] = None) -> int:
@@ -317,10 +452,38 @@ class WebSocketManager:
             
             # Update heartbeat timestamp
             if client_id in self.active_connections:
-                self.active_connections[client_id].last_heartbeat = time.time()
+                connection = self.active_connections[client_id]
+                connection.last_heartbeat = time.time()
+                connection.message_count += 1
             
             # Handle different message types
-            if message.type == MessageType.SUBSCRIBE:
+            if message.type == MessageType.PING:
+                # Respond to ping immediately
+                pong_message = WebSocketMessage(
+                    type=MessageType.PONG,
+                    data={"timestamp": message.data.get("timestamp")},
+                    client_id=client_id
+                )
+                await self._send_to_client(client_id, pong_message)
+                
+                # Calculate latency
+                if "timestamp" in message.data:
+                    try:
+                        ping_time = float(message.data["timestamp"])
+                        latency = time.time() - ping_time
+                        connection.ping_latency = latency * 1000  # Convert to milliseconds
+                        self.connection_latencies.append(connection.ping_latency)
+                    except:
+                        pass
+            
+            elif message.type == MessageType.PONG:
+                # Handle pong response
+                if connection.last_ping_sent:
+                    latency = time.time() - connection.last_ping_sent
+                    connection.ping_latency = latency * 1000  # Convert to milliseconds
+                    self.connection_latencies.append(connection.ping_latency)
+            
+            elif message.type == MessageType.SUBSCRIBE:
                 room_id = message.data.get("room_id")
                 if room_id:
                     await self.subscribe_to_room(client_id, room_id)
@@ -346,10 +509,28 @@ class WebSocketManager:
                 # Respond to heartbeat
                 response = WebSocketMessage(
                     type=MessageType.HEARTBEAT,
-                    data={"server_time": datetime.utcnow().isoformat()},
+                    data={
+                        "server_time": datetime.utcnow().isoformat(),
+                        "latency": connection.ping_latency
+                    },
                     client_id=client_id
                 )
                 await self._send_to_client(client_id, response)
+            
+            elif message.type == MessageType.CONNECTION_STATE:
+                # Client requesting connection state
+                state_message = WebSocketMessage(
+                    type=MessageType.CONNECTION_STATE,
+                    data={
+                        "state": connection.state.value,
+                        "connected_at": connection.connected_at,
+                        "reconnection_count": connection.reconnection_count,
+                        "subscribed_rooms": list(connection.subscribed_rooms),
+                        "latency": connection.ping_latency
+                    },
+                    client_id=client_id
+                )
+                await self._send_to_client(client_id, state_message)
             
             return True
             
@@ -464,19 +645,118 @@ class WebSocketManager:
                 logger.error(f"Error in cleanup worker: {e}")
                 await asyncio.sleep(60)  # Wait before retry
     
+    async def _ping_worker(self):
+        """Background worker to send ping messages and measure latency"""
+        while True:
+            try:
+                ping_tasks = []
+                current_time = time.time()
+                
+                for client_id, connection in self.active_connections.items():
+                    # Send ping
+                    ping_message = WebSocketMessage(
+                        type=MessageType.PING,
+                        data={"timestamp": current_time}
+                    )
+                    connection.last_ping_sent = current_time
+                    task = self._send_to_client(client_id, ping_message)
+                    ping_tasks.append(task)
+                
+                # Wait for all pings to be sent
+                if ping_tasks:
+                    await asyncio.gather(*ping_tasks, return_exceptions=True)
+                
+                await asyncio.sleep(self.ping_interval)
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in ping worker: {e}")
+                await asyncio.sleep(5)
+    
+    async def _metrics_worker(self):
+        """Background worker to collect and log metrics"""
+        while True:
+            try:
+                # Log metrics every minute
+                stats = self.get_statistics()
+                logger.info(f"WebSocket metrics: {stats}")
+                
+                # Clean up old latency measurements (keep last 1000)
+                if len(self.connection_latencies) > 1000:
+                    self.connection_latencies = self.connection_latencies[-1000:]
+                
+                await asyncio.sleep(60)
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in metrics worker: {e}")
+                await asyncio.sleep(60)
+    
+    async def _check_rate_limit(self, client_id: str) -> bool:
+        """Check if client has exceeded rate limit"""
+        if client_id not in self.active_connections:
+            return False
+        
+        connection = self.active_connections[client_id]
+        current_time = time.time()
+        
+        # Reset rate limit window if expired
+        if current_time - connection.rate_limit_reset >= self.rate_limit_window:
+            connection.message_count = 0
+            connection.rate_limit_reset = current_time
+        
+        return connection.message_count < self.rate_limit_messages
+    
+    async def _broadcast_connection_state(self, client_id: str, state: ConnectionState):
+        """Broadcast connection state change to relevant rooms"""
+        # This can be used to notify other clients about connection state changes
+        # For example, in a game or collaborative environment
+        pass
+    
+    def add_connect_callback(self, callback: Callable):
+        """Add callback to be executed when client connects"""
+        self.on_connect_callbacks.append(callback)
+    
+    def add_disconnect_callback(self, callback: Callable):
+        """Add callback to be executed when client disconnects"""
+        self.on_disconnect_callbacks.append(callback)
+    
+    def add_reconnect_callback(self, callback: Callable):
+        """Add callback to be executed when client reconnects"""
+        self.on_reconnect_callbacks.append(callback)
+    
     def get_statistics(self) -> Dict[str, Any]:
         """Get WebSocket manager statistics"""
         uptime = time.time() - self.start_time
+        
+        # Calculate average latency
+        avg_latency = None
+        if self.connection_latencies:
+            avg_latency = sum(self.connection_latencies) / len(self.connection_latencies)
+        
         return {
             "active_connections": self.connection_count,
             "total_connections": self.total_connections,
+            "max_concurrent_connections": self.max_concurrent_connections,
             "total_rooms": len(self.rooms),
             "total_messages_sent": self.total_messages_sent,
             "total_messages_received": self.total_messages_received,
             "uptime_seconds": uptime,
             "queued_messages": sum(len(queue) for queue in self.message_queues.values()),
-            "room_details": {room_id: len(clients) for room_id, clients in self.rooms.items()}
+            "disconnected_clients_tracked": len(self.disconnected_clients),
+            "average_latency_ms": avg_latency,
+            "room_details": {room_id: len(clients) for room_id, clients in self.rooms.items()},
+            "connection_states": self._get_connection_states()
         }
+    
+    def _get_connection_states(self) -> Dict[str, int]:
+        """Get count of connections by state"""
+        states = defaultdict(int)
+        for connection in self.active_connections.values():
+            states[connection.state.value] += 1
+        return dict(states)
     
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status for monitoring"""
@@ -505,3 +785,11 @@ def generate_league_room_id(league_id: str) -> str:
 def generate_live_room_id(gameweek: int) -> str:
     """Generate room ID for live gameweek updates"""
     return f"live_gw_{gameweek}"
+
+def generate_manager_room_id(manager_id: str) -> str:
+    """Generate room ID for manager-specific updates"""
+    return f"manager_{manager_id}"
+
+def generate_global_room_id() -> str:
+    """Generate room ID for global updates"""
+    return "global_updates"

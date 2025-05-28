@@ -11,13 +11,27 @@ from typing import Optional, List, Dict, Any
 from .services.live_data_v2 import LiveDataService
 from .services.h2h_analyzer import H2HAnalyzer
 from .services.enhanced_h2h_analyzer import EnhancedH2HAnalyzer
-from .services.analytics import DifferentialAnalyzer, PredictiveEngine, ChipAnalyzer, PatternRecognition
+from .services.analytics.differential_analyzer import DifferentialAnalyzer
+from .services.analytics.predictive_engine import PredictiveEngine
+from .services.analytics.chip_analyzer import ChipAnalyzer
+from .services.analytics.pattern_recognition import PatternRecognition
 from .services.advanced_analytics import AdvancedAnalyticsService
 from .services.report_generator import ReportGenerator
 from .services.cache import CacheService
-from .websocket.live_updates import WebSocketManager, MessageType, WebSocketMessage, generate_h2h_room_id, generate_league_room_id, generate_live_room_id
+from .services.notification_service import NotificationService
+from .services.live_match_service import LiveMatchService
+from .services.predictive_match_simulator import PredictiveMatchSimulator
+from .services.live_prediction_adjustor import LivePredictionAdjustor
+from .services.ml_predictor import MLPredictor
+from .services.strategy_advisor import StrategyAdvisor
+from .websocket.live_updates import (
+    WebSocketManager, MessageType, WebSocketMessage, ConnectionState,
+    generate_h2h_room_id, generate_league_room_id, generate_live_room_id,
+    generate_manager_room_id, generate_global_room_id
+)
 from .config import TARGET_LEAGUE_ID
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +48,18 @@ report_generator = None
 redis_client = None
 cache_service = None
 websocket_manager = None
+notification_service = None
+live_match_service = None
+predictive_match_simulator = None
+live_prediction_adjustor = None
+ml_predictor = None
+strategy_advisor = None
+live_data_polling_task = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    global live_data_service, h2h_analyzer, enhanced_h2h_analyzer, differential_analyzer, predictive_engine, chip_analyzer, pattern_recognizer, advanced_analytics, report_generator, redis_client, cache_service, websocket_manager
+    global live_data_service, h2h_analyzer, enhanced_h2h_analyzer, differential_analyzer, predictive_engine, chip_analyzer, pattern_recognizer, advanced_analytics, report_generator, redis_client, cache_service, websocket_manager, notification_service, live_match_service, predictive_match_simulator, live_prediction_adjustor, ml_predictor, strategy_advisor, live_data_polling_task
     
     try:
         # Initialize Redis connection
@@ -47,9 +68,33 @@ async def lifespan(app: FastAPI):
         # Initialize cache service with Redis
         cache_service = CacheService(redis_client)
         
-        # Initialize WebSocket manager
-        websocket_manager = WebSocketManager(max_connections=1000, heartbeat_interval=30)
+        # Initialize WebSocket manager with enhanced configuration
+        websocket_manager = WebSocketManager(
+            max_connections=1000,
+            heartbeat_interval=30,
+            ping_interval=10,
+            ping_timeout=5,
+            reconnection_window=300,  # 5 minutes
+            rate_limit_messages=100,
+            rate_limit_window=60  # per minute
+        )
         await websocket_manager.start_background_tasks()
+        
+        # Add connection callbacks for monitoring
+        async def on_connect(client_id: str, connection):
+            logger.info(f"Client {client_id} connected from {connection.ip_address}")
+            # You can add custom logic here, e.g., send initial data
+            
+        async def on_disconnect(client_id: str, connection):
+            logger.info(f"Client {client_id} disconnected after {time.time() - connection.connected_at:.2f} seconds")
+            
+        async def on_reconnect(client_id: str, connection):
+            logger.info(f"Client {client_id} reconnected (attempt #{connection.reconnection_count})")
+            # You can add custom logic here, e.g., send missed updates
+            
+        websocket_manager.add_connect_callback(on_connect)
+        websocket_manager.add_disconnect_callback(on_disconnect)
+        websocket_manager.add_reconnect_callback(on_reconnect)
         
         # Initialize services with rate limiting
         live_data_service = LiveDataService()
@@ -81,14 +126,67 @@ async def lifespan(app: FastAPI):
             enhanced_h2h_analyzer=enhanced_h2h_analyzer
         )
         
+        # Initialize notification service
+        notification_service = NotificationService(
+            redis_client=redis_client,
+            websocket_manager=websocket_manager
+        )
+        
+        # Initialize live match service
+        live_match_service = LiveMatchService(
+            live_data_service=live_data_service,
+            h2h_analyzer=h2h_analyzer,
+            websocket_manager=websocket_manager,
+            redis_client=redis_client
+        )
+        
+        # Initialize ML predictor
+        ml_predictor = MLPredictor()
+        
+        # Initialize predictive match simulator
+        predictive_match_simulator = PredictiveMatchSimulator(
+            live_data_service=live_data_service,
+            ml_predictor=ml_predictor
+        )
+        
+        # Initialize live prediction adjustor
+        live_prediction_adjustor = LivePredictionAdjustor(
+            live_data_service=live_data_service,
+            ml_predictor=ml_predictor
+        )
+        
+        # Initialize strategy advisor
+        strategy_advisor = StrategyAdvisor(
+            live_data_service=live_data_service,
+            predictive_simulator=predictive_match_simulator,
+            chip_analyzer=chip_analyzer
+        )
+        
         # Warm cache for better performance
         current_gw = await live_data_service.get_current_gameweek()
         await live_data_service.warm_cache(league_id=TARGET_LEAGUE_ID)
+        
+        # Start live data polling for current gameweek
+        async def poll_live_data():
+            while True:
+                try:
+                    await live_match_service.update_live_matches(TARGET_LEAGUE_ID, current_gw)
+                    await asyncio.sleep(30)  # Poll every 30 seconds
+                except Exception as e:
+                    logger.error(f"Error in live data polling: {e}")
+                    await asyncio.sleep(60)  # Wait longer on error
+        
+        live_data_polling_task = asyncio.create_task(poll_live_data())
         
         print(f"✅ FPL Nexus backend started successfully")
         print(f"🔴 Redis: {os.getenv('REDIS_URL', 'redis://localhost:6379')}")
         print(f"🎯 Current Gameweek: {current_gw}")
         print(f"🔌 WebSocket Manager: {websocket_manager.max_connections} max connections")
+        print(f"📡 Live data polling: Started for league {TARGET_LEAGUE_ID}")
+        print(f"🔔 Notification service: Ready")
+        print(f"🤖 ML Predictor: Ready")
+        print(f"🎲 Match Simulator: Ready")
+        print(f"📊 Strategy Advisor: Ready")
         
     except Exception as e:
         print(f"❌ Failed to start services: {e}")
@@ -99,8 +197,22 @@ async def lifespan(app: FastAPI):
     # Shutdown
     print("🛑 Shutting down FPL Nexus backend...")
     
+    # Stop live data polling
+    if live_data_polling_task:
+        live_data_polling_task.cancel()
+        try:
+            await live_data_polling_task
+        except asyncio.CancelledError:
+            pass
+    
     if websocket_manager:
         await websocket_manager.stop_background_tasks()
+    
+    if notification_service:
+        await notification_service.close()
+    
+    if live_match_service:
+        await live_match_service.close()
     
     if live_data_service:
         await live_data_service.close()
@@ -238,21 +350,6 @@ async def get_current_gameweek():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/league/{league_id}/overview")
-async def get_league_overview(league_id: int):
-    """Get league overview including standings and basic info."""
-    try:
-        # Get the full standings data with league info
-        standings_data = await h2h_analyzer.get_h2h_standings(league_id)
-        current_gw = await live_data_service.get_current_gameweek()
-        
-        return {
-            "league_id": league_id,
-            "current_gameweek": current_gw,
-            "standings": standings_data  # Return the full API response with league info and standings
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/websocket/broadcast/{room_id}")
 async def broadcast_message(room_id: str, message_type: str, data: dict):
@@ -380,15 +477,18 @@ async def get_h2h_battle_details(manager1_id: int, manager2_id: int, gameweek: O
 
 @app.websocket("/ws/connect")
 async def websocket_connect(websocket: WebSocket):
-    """Main WebSocket endpoint for real-time updates"""
-    client_id = str(uuid.uuid4())
+    """Main WebSocket endpoint for real-time updates with reconnection support"""
+    # Extract reconnection token from headers or query params
+    query_params = dict(websocket.query_params)
+    reconnection_token = query_params.get('reconnection_token')
+    client_id = query_params.get('client_id', str(uuid.uuid4()))
     
     if not websocket_manager:
         await websocket.close(code=1011, reason="WebSocket service unavailable")
         return
     
-    # Connect client to WebSocket manager
-    connected = await websocket_manager.connect(websocket, client_id)
+    # Connect client to WebSocket manager with reconnection support
+    connected = await websocket_manager.connect(websocket, client_id, reconnection_token)
     if not connected:
         return
     
@@ -399,15 +499,17 @@ async def websocket_connect(websocket: WebSocket):
                 data = await websocket.receive_text()
                 await websocket_manager.handle_client_message(client_id, data)
             except WebSocketDisconnect:
+                logger.info(f"Client {client_id} disconnected via WebSocketDisconnect")
                 break
             except Exception as e:
-                print(f"Error handling message from {client_id}: {e}")
+                logger.error(f"Error handling message from {client_id}: {e}")
                 break
                 
     except Exception as e:
-        print(f"WebSocket error for client {client_id}: {e}")
+        logger.error(f"WebSocket error for client {client_id}: {e}")
     finally:
-        await websocket_manager.disconnect(client_id)
+        # Disconnect with save_state=True to enable reconnection
+        await websocket_manager.disconnect(client_id, save_state=True)
 
 @app.websocket("/ws/h2h-battle/{manager1_id}/{manager2_id}")
 async def websocket_h2h_battle(websocket: WebSocket, manager1_id: int, manager2_id: int):
@@ -468,6 +570,127 @@ async def websocket_h2h_battle(websocket: WebSocket, manager1_id: int, manager2_
                 break
             except Exception as e:
                 print(f"Error in H2H WebSocket: {e}")
+                break
+                
+    finally:
+        await websocket_manager.disconnect(client_id)
+
+@app.websocket("/ws/league/{league_id}")
+async def websocket_league_updates(websocket: WebSocket, league_id: int):
+    """WebSocket endpoint for league-wide updates"""
+    client_id = f"league_{league_id}_{uuid.uuid4().hex[:8]}"
+    
+    if not websocket_manager:
+        await websocket.close(code=1011, reason="WebSocket service unavailable")
+        return
+    
+    # Connect client
+    connected = await websocket_manager.connect(websocket, client_id)
+    if not connected:
+        return
+    
+    try:
+        # Subscribe to league room
+        room_id = generate_league_room_id(league_id)
+        await websocket_manager.subscribe_to_room(client_id, room_id)
+        
+        # Get current gameweek and subscribe to live updates
+        current_gw = await live_data_service.get_current_gameweek()
+        live_room_id = generate_live_room_id(current_gw)
+        await websocket_manager.subscribe_to_room(client_id, live_room_id)
+        
+        # Send initial league data
+        try:
+            standings = await live_data_service.get_h2h_league_standings(league_id)
+            initial_message = WebSocketMessage(
+                type=MessageType.LEAGUE_UPDATE,
+                data={
+                    "league_id": league_id,
+                    "gameweek": current_gw,
+                    "standings": standings.get("standings", {}).get("results", [])[:10],
+                    "timestamp": asyncio.get_event_loop().time()
+                },
+                client_id=client_id
+            )
+            await websocket_manager.send_to_client(client_id, initial_message)
+        except Exception as e:
+            logger.error(f"Error sending initial league data: {e}")
+        
+        # Keep connection alive
+        while True:
+            try:
+                data = await websocket.receive_text()
+                await websocket_manager.handle_client_message(client_id, data)
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                logger.error(f"Error in league WebSocket: {e}")
+                break
+                
+    finally:
+        await websocket_manager.disconnect(client_id)
+
+@app.websocket("/ws/manager/{manager_id}")
+async def websocket_manager_updates(websocket: WebSocket, manager_id: int):
+    """WebSocket endpoint for manager-specific updates"""
+    client_id = f"manager_{manager_id}_{uuid.uuid4().hex[:8]}"
+    
+    if not websocket_manager:
+        await websocket.close(code=1011, reason="WebSocket service unavailable")
+        return
+    
+    # Connect client
+    connected = await websocket_manager.connect(websocket, client_id)
+    if not connected:
+        return
+    
+    try:
+        # Subscribe to manager room
+        room_id = generate_manager_room_id(manager_id)
+        await websocket_manager.subscribe_to_room(client_id, room_id)
+        
+        # Get current gameweek and subscribe to live updates
+        current_gw = await live_data_service.get_current_gameweek()
+        live_room_id = generate_live_room_id(current_gw)
+        await websocket_manager.subscribe_to_room(client_id, live_room_id)
+        
+        # Send initial manager data
+        try:
+            manager_info = await live_data_service.get_manager_info(manager_id)
+            manager_picks = await live_data_service.get_manager_picks(manager_id, current_gw)
+            live_data = await live_data_service.get_live_gameweek_data(current_gw)
+            
+            # Calculate live score
+            live_score = await h2h_analyzer._calculate_live_score(manager_picks, live_data)
+            
+            initial_message = WebSocketMessage(
+                type=MessageType.MANAGER_UPDATE,
+                data={
+                    "manager_id": manager_id,
+                    "gameweek": current_gw,
+                    "info": {
+                        "name": manager_info.get("name"),
+                        "player_name": f"{manager_info.get('player_first_name')} {manager_info.get('player_last_name')}"
+                    },
+                    "live_score": live_score,
+                    "chip": manager_picks.get("active_chip"),
+                    "timestamp": asyncio.get_event_loop().time()
+                },
+                client_id=client_id
+            )
+            await websocket_manager.send_to_client(client_id, initial_message)
+        except Exception as e:
+            logger.error(f"Error sending initial manager data: {e}")
+        
+        # Keep connection alive
+        while True:
+            try:
+                data = await websocket.receive_text()
+                await websocket_manager.handle_client_message(client_id, data)
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                logger.error(f"Error in manager WebSocket: {e}")
                 break
                 
     finally:
@@ -578,6 +801,43 @@ async def get_league_entries_and_h2h_matches(league_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/league/{league_id}/overview")
+async def get_league_overview(league_id: int):
+    """Get comprehensive league overview with stats and analytics."""
+    try:
+        # Get H2H league standings
+        standings_data = await live_data_service.get_h2h_league_standings(league_id)
+        
+        # Get current gameweek
+        current_gw = await live_data_service.get_current_gameweek()
+        
+        # Return the full standings data structure that frontend expects
+        # Plus additional computed fields
+        total_managers = len(standings_data.get("standings", {}).get("results", []))
+        standings_results = standings_data.get("standings", {}).get("results", [])
+        total_points = sum(m.get("points_for", 0) for m in standings_results)
+        avg_points = total_points / max(total_managers, 1)
+        
+        return {
+            "league_id": league_id,
+            "current_gameweek": current_gw,
+            "total_managers": total_managers,
+            "average_points": round(avg_points, 1),
+            "standings": standings_data,  # Include the full standings structure
+            "last_updated": standings_data.get("last_updated_data", None)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/league/standings/{league_id}")
+async def get_league_standings(league_id: int):
+    """Get H2H league standings."""
+    try:
+        data = await live_data_service.get_h2h_league_standings(league_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/websocket/stats")
 async def get_websocket_stats():
     """Get WebSocket connection statistics"""
@@ -588,11 +848,50 @@ async def get_websocket_stats():
         stats = websocket_manager.get_statistics()
         health = websocket_manager.get_health_status()
         
+        # Add room-specific stats
+        room_stats = {}
+        for room_id, clients in websocket_manager.rooms.items():
+            room_stats[room_id] = {
+                "client_count": len(clients),
+                "clients": list(clients)[:10]  # Show first 10 for large rooms
+            }
+        
         return {
             "statistics": stats,
             "health": health,
+            "rooms": room_stats,
             "timestamp": asyncio.get_event_loop().time()
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/websocket/rooms/{room_id}/subscribe")
+async def subscribe_to_room(room_id: str, client_id: str):
+    """Subscribe a client to a specific room (admin endpoint)"""
+    if not websocket_manager:
+        raise HTTPException(status_code=503, detail="WebSocket service unavailable")
+    
+    try:
+        success = await websocket_manager.subscribe_to_room(client_id, room_id)
+        if success:
+            return {"message": f"Client {client_id} subscribed to room {room_id}"}
+        else:
+            raise HTTPException(status_code=400, detail="Failed to subscribe client to room")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/websocket/rooms/{room_id}/unsubscribe")
+async def unsubscribe_from_room(room_id: str, client_id: str):
+    """Unsubscribe a client from a specific room (admin endpoint)"""
+    if not websocket_manager:
+        raise HTTPException(status_code=503, detail="WebSocket service unavailable")
+    
+    try:
+        success = await websocket_manager.unsubscribe_from_room(client_id, room_id)
+        if success:
+            return {"message": f"Client {client_id} unsubscribed from room {room_id}"}
+        else:
+            raise HTTPException(status_code=400, detail="Failed to unsubscribe client from room")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1168,3 +1467,284 @@ async def websocket_live_tracking(
             await websocket.close()
         except:
             pass
+
+# Notification Service Endpoints
+
+@app.post("/api/notifications/subscribe")
+async def subscribe_to_notifications(user_id: str, manager_ids: List[int], event_types: List[str]):
+    """Subscribe to notifications for specific managers and events."""
+    try:
+        if not notification_service:
+            raise HTTPException(status_code=503, detail="Notification service unavailable")
+        
+        await notification_service.subscribe_user(user_id, manager_ids, event_types)
+        return {"message": "Successfully subscribed to notifications"}
+    except Exception as e:
+        logger.error(f"Error subscribing to notifications: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/notifications/unsubscribe")
+async def unsubscribe_from_notifications(user_id: str, manager_ids: Optional[List[int]] = None):
+    """Unsubscribe from notifications."""
+    try:
+        if not notification_service:
+            raise HTTPException(status_code=503, detail="Notification service unavailable")
+        
+        await notification_service.unsubscribe_user(user_id, manager_ids)
+        return {"message": "Successfully unsubscribed from notifications"}
+    except Exception as e:
+        logger.error(f"Error unsubscribing from notifications: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/notifications/{user_id}")
+async def get_user_notifications(user_id: str, limit: int = 50):
+    """Get recent notifications for a user."""
+    try:
+        if not notification_service:
+            raise HTTPException(status_code=503, detail="Notification service unavailable")
+        
+        notifications = await notification_service.get_user_notifications(user_id, limit)
+        return {"notifications": notifications}
+    except Exception as e:
+        logger.error(f"Error getting notifications: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/notifications/{notification_id}/mark-read")
+async def mark_notification_read(notification_id: str, user_id: str):
+    """Mark a notification as read."""
+    try:
+        if not notification_service:
+            raise HTTPException(status_code=503, detail="Notification service unavailable")
+        
+        await notification_service.mark_notification_read(user_id, notification_id)
+        return {"message": "Notification marked as read"}
+    except Exception as e:
+        logger.error(f"Error marking notification as read: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Live Match Service Endpoints
+
+@app.get("/api/live/matches/{league_id}")
+async def get_live_matches(league_id: int, gameweek: Optional[int] = None):
+    """Get live match data for a league."""
+    try:
+        if not live_match_service:
+            raise HTTPException(status_code=503, detail="Live match service unavailable")
+        
+        if gameweek is None:
+            gameweek = await live_data_service.get_current_gameweek()
+        
+        matches = await live_match_service.get_live_matches(league_id, gameweek)
+        return {"gameweek": gameweek, "matches": matches}
+    except Exception as e:
+        logger.error(f"Error getting live matches: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/live/match/{match_id}")
+async def get_live_match_details(match_id: str):
+    """Get detailed live data for a specific match."""
+    try:
+        if not live_match_service:
+            raise HTTPException(status_code=503, detail="Live match service unavailable")
+        
+        match_data = await live_match_service.get_match_details(match_id)
+        return match_data
+    except Exception as e:
+        logger.error(f"Error getting live match details: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/live/refresh/{league_id}")
+async def refresh_live_data(league_id: int, gameweek: Optional[int] = None):
+    """Manually refresh live data for a league."""
+    try:
+        if not live_match_service:
+            raise HTTPException(status_code=503, detail="Live match service unavailable")
+        
+        if gameweek is None:
+            gameweek = await live_data_service.get_current_gameweek()
+        
+        await live_match_service.update_live_matches(league_id, gameweek)
+        return {"message": "Live data refreshed", "league_id": league_id, "gameweek": gameweek}
+    except Exception as e:
+        logger.error(f"Error refreshing live data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Predictive Match Simulator Endpoints
+
+@app.post("/api/simulator/predict/{manager1_id}/{manager2_id}/{gameweek}")
+async def get_h2h_prediction_simulation(
+    manager1_id: int,
+    manager2_id: int,
+    gameweek: int,
+    include_scenarios: bool = True,
+    include_confidence: bool = True
+):
+    """Get H2H match prediction with ML-based simulation."""
+    try:
+        if not predictive_match_simulator:
+            raise HTTPException(status_code=503, detail="Predictive match simulator not initialized")
+        
+        prediction = await predictive_match_simulator.predict_h2h_outcome(
+            manager1_id,
+            manager2_id,
+            gameweek
+        )
+        
+        return prediction
+    except Exception as e:
+        logger.error(f"Error in H2H prediction simulation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/simulator/live-predict/{manager1_id}/{manager2_id}/{gameweek}")
+async def get_live_adjusted_prediction(
+    manager1_id: int,
+    manager2_id: int,
+    gameweek: int
+):
+    """Get live-adjusted H2H prediction based on current match state."""
+    try:
+        if not live_prediction_adjustor:
+            raise HTTPException(status_code=503, detail="Live prediction adjustor not initialized")
+        
+        # Get base prediction first
+        base_prediction = await predictive_match_simulator.predict_h2h_outcome(
+            manager1_id,
+            manager2_id,
+            gameweek
+        )
+        
+        # Adjust based on live data
+        adjusted_prediction = await live_prediction_adjustor.adjust_prediction_live(
+            base_prediction,
+            manager1_id,
+            manager2_id,
+            gameweek
+        )
+        
+        return adjusted_prediction
+    except Exception as e:
+        logger.error(f"Error in live prediction adjustment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/simulator/scenarios/{manager1_id}/{manager2_id}/{gameweek}")
+async def run_scenario_analysis(
+    manager1_id: int,
+    manager2_id: int,
+    gameweek: int,
+    scenarios: Optional[List[str]] = None
+):
+    """Run scenario analysis for H2H match."""
+    try:
+        if not predictive_match_simulator:
+            raise HTTPException(status_code=503, detail="Predictive match simulator not initialized")
+        
+        # Default scenarios if none provided
+        if scenarios is None:
+            scenarios = ["base", "captain_blank", "differential_haul", "injury_crisis"]
+        
+        results = await predictive_match_simulator.run_scenario_analysis(
+            manager1_id,
+            manager2_id,
+            gameweek,
+            scenarios
+        )
+        
+        return results
+    except Exception as e:
+        logger.error(f"Error in scenario analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/strategy/recommendations/{manager1_id}/{manager2_id}/{gameweek}")
+async def get_strategic_recommendations(
+    manager1_id: int,
+    manager2_id: int,
+    gameweek: int,
+    include_transfers: bool = True,
+    include_chips: bool = True,
+    include_captaincy: bool = True
+):
+    """Get strategic recommendations for H2H match."""
+    try:
+        if not strategy_advisor:
+            raise HTTPException(status_code=503, detail="Strategy advisor not initialized")
+        
+        recommendations = await strategy_advisor.get_recommendations(
+            manager1_id,
+            manager2_id,
+            gameweek,
+            include_transfers=include_transfers,
+            include_chips=include_chips,
+            include_captaincy=include_captaincy
+        )
+        
+        return recommendations
+    except Exception as e:
+        logger.error(f"Error getting strategic recommendations: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ml/performance")
+async def get_ml_model_performance():
+    """Get ML model performance metrics."""
+    try:
+        if not ml_predictor:
+            raise HTTPException(status_code=503, detail="ML predictor not initialized")
+        
+        metrics = ml_predictor.get_model_performance()
+        
+        return {
+            "model_info": {
+                "version": metrics.get("version", "1.0.0"),
+                "last_trained": metrics.get("last_trained"),
+                "training_samples": metrics.get("training_samples", 0)
+            },
+            "performance": {
+                "accuracy": metrics.get("accuracy", 0),
+                "precision": metrics.get("precision", 0),
+                "recall": metrics.get("recall", 0),
+                "f1_score": metrics.get("f1_score", 0)
+            },
+            "feature_importance": metrics.get("feature_importance", {}),
+            "validation_results": metrics.get("validation_results", {})
+        }
+    except Exception as e:
+        logger.error(f"Error getting ML model performance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ml/retrain")
+async def retrain_ml_model(
+    force: bool = False,
+    validation_split: float = 0.2
+):
+    """Trigger ML model retraining."""
+    try:
+        if not ml_predictor:
+            raise HTTPException(status_code=503, detail="ML predictor not initialized")
+        
+        # Check if retraining is needed
+        if not force:
+            metrics = ml_predictor.get_model_performance()
+            last_trained = metrics.get("last_trained")
+            if last_trained:
+                # Only retrain if model is older than 7 days
+                from datetime import datetime, timedelta
+                last_trained_date = datetime.fromisoformat(last_trained)
+                if datetime.now() - last_trained_date < timedelta(days=7):
+                    return {
+                        "status": "skipped",
+                        "message": "Model was recently trained",
+                        "last_trained": last_trained
+                    }
+        
+        # Start retraining (this would typically be an async background task)
+        result = await ml_predictor.retrain_model(
+            validation_split=validation_split
+        )
+        
+        return {
+            "status": "success",
+            "message": "Model retrained successfully",
+            "metrics": result
+        }
+    except Exception as e:
+        logger.error(f"Error retraining ML model: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

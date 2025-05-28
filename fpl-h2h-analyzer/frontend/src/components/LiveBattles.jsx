@@ -19,10 +19,7 @@ import EnhancedBattleCard from './EnhancedBattleCard';
 import { fplApi } from '../services/api';
 import websocketService, { MessageTypes } from '../services/websocket';
 
-// Default league ID from config
-const DEFAULT_LEAGUE_ID = 620117; // Top Dog Premier League
-
-function LiveBattles() {
+function LiveBattles({ leagueId }) {
   const [battles, setBattles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,6 +30,12 @@ function LiveBattles() {
   const [realtimeUpdates, setRealtimeUpdates] = useState(0);
 
   const fetchBattles = async (gameweek = null) => {
+    if (!leagueId) {
+      setError('No league selected');
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -49,8 +52,8 @@ function LiveBattles() {
       // Get live battles for specific gameweek
       const targetGameweek = gameweek || selectedGameweek;
       const url = targetGameweek ? 
-        `http://localhost:8000/api/h2h/live-battles/${DEFAULT_LEAGUE_ID}?gameweek=${targetGameweek}` :
-        `http://localhost:8000/api/h2h/live-battles/${DEFAULT_LEAGUE_ID}`;
+        `http://localhost:8000/api/h2h/live-battles/${leagueId}?gameweek=${targetGameweek}` :
+        `http://localhost:8000/api/h2h/live-battles/${leagueId}`;
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -181,7 +184,7 @@ function LiveBattles() {
   useEffect(() => {
     if (currentGameweek && isConnected) {
       // Subscribe to league updates
-      websocketService.subscribeToLeague(DEFAULT_LEAGUE_ID);
+      websocketService.subscribeToLeague(leagueId);
       
       // Subscribe to live gameweek updates
       websocketService.subscribeToLiveGameweek(currentGameweek);
@@ -193,9 +196,9 @@ function LiveBattles() {
         }
       });
       
-      console.log(`🔔 Subscribed to real-time updates for GW${currentGameweek} and league ${DEFAULT_LEAGUE_ID}`);
+      console.log(`🔔 Subscribed to real-time updates for GW${currentGameweek} and league ${leagueId}`);
     }
-  }, [currentGameweek, isConnected, battles]);
+  }, [currentGameweek, isConnected, battles, leagueId]);
 
   const handleRefresh = () => {
     fetchBattles();
