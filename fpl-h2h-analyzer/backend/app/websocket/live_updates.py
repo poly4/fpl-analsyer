@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional, Set, Any, Callable
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, field, asdict
 
 from fastapi import WebSocket, WebSocketDisconnect, status
 import uvloop
@@ -69,10 +69,10 @@ class ClientConnection:
     client_id: str
     connected_at: float
     last_heartbeat: float
-    subscribed_rooms: Set[str]
+    subscribed_rooms: Set[str] = field(default_factory=set)
     user_agent: Optional[str] = None
     ip_address: Optional[str] = None
-    state: ConnectionState = ConnectionState.CONNECTING
+    state: ConnectionState = field(default_factory=lambda: ConnectionState.CONNECTING)
     reconnection_token: Optional[str] = None
     reconnection_count: int = 0
     last_ping_sent: Optional[float] = None

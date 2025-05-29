@@ -53,7 +53,7 @@ function RateLimitMonitor() {
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('/api/rate-limit/metrics');
+      const response = await fetch('/api/rate-limiter/metrics');
       if (!response.ok) {
         throw new Error('Failed to fetch rate limit metrics');
       }

@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
 
+console.log('🔥 Main entry point loading...');
+console.log('🎯 Root element:', document.getElementById('root'));
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

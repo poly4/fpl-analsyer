@@ -22,6 +22,12 @@ export const fplApi = {
     return response.data;
   },
 
+  // Get league standings (Top Dog Premier League uses H2H format)
+  getLeagueStandings: async (leagueId) => {
+    const response = await api.get(`/league/standings/${leagueId}`);
+    return response.data;
+  },
+
   // Get live H2H battles
   getLiveBattles: async (leagueId, gameweek = null) => {
     const params = gameweek ? { gameweek } : {};
@@ -45,6 +51,39 @@ export const fplApi = {
   // Get manager history
   getManagerHistory: async (managerId) => {
     const response = await api.get(`/manager/${managerId}/history`);
+    return response.data;
+  },
+
+  // Analytics endpoints
+  getComprehensiveAnalysis: async (manager1Id, manager2Id) => {
+    const response = await api.get(`/analytics/h2h/comprehensive/${manager1Id}/${manager2Id}`);
+    return response.data;
+  },
+
+  getDifferentialAnalysis: async (manager1Id, manager2Id) => {
+    const response = await api.get(`/analytics/h2h/differential/${manager1Id}/${manager2Id}`);
+    return response.data;
+  },
+
+  getChipStrategy: async (managerId) => {
+    const response = await api.get(`/analytics/chip-strategy/${managerId}`);
+    return response.data;
+  },
+
+  getTransferROI: async (managerId) => {
+    const response = await api.get(`/analytics/v2/transfer-roi/${managerId}`);
+    return response.data;
+  },
+
+  // Live match tracking
+  getLiveMatchData: async (manager1Id, manager2Id) => {
+    const response = await api.get(`/analytics/v2/live-match/${manager1Id}/${manager2Id}`);
+    return response.data;
+  },
+
+  // Rate limiter status
+  getRateLimiterMetrics: async () => {
+    const response = await api.get('/rate-limiter/metrics');
     return response.data;
   },
 };

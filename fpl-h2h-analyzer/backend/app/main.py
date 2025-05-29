@@ -18,9 +18,10 @@ from .services.analytics.pattern_recognition import PatternRecognition
 from .services.advanced_analytics import AdvancedAnalyticsService
 from .services.report_generator import ReportGenerator
 from .services.cache import CacheService
+from .services.redis_cache import RedisCache
 from .services.notification_service import NotificationService
 from .services.live_match_service import LiveMatchService
-from .services.predictive_match_simulator import PredictiveMatchSimulator
+from .services.match_simulator import MatchSimulator
 from .services.live_prediction_adjustor import LivePredictionAdjustor
 from .services.ml_predictor import MLPredictor
 from .services.strategy_advisor import StrategyAdvisor
@@ -55,11 +56,12 @@ live_prediction_adjustor = None
 ml_predictor = None
 strategy_advisor = None
 live_data_polling_task = None
+redis_cache = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    global live_data_service, h2h_analyzer, enhanced_h2h_analyzer, differential_analyzer, predictive_engine, chip_analyzer, pattern_recognizer, advanced_analytics, report_generator, redis_client, cache_service, websocket_manager, notification_service, live_match_service, predictive_match_simulator, live_prediction_adjustor, ml_predictor, strategy_advisor, live_data_polling_task
+    global live_data_service, h2h_analyzer, enhanced_h2h_analyzer, differential_analyzer, predictive_engine, chip_analyzer, pattern_recognizer, advanced_analytics, report_generator, redis_client, cache_service, websocket_manager, notification_service, live_match_service, predictive_match_simulator, live_prediction_adjustor, ml_predictor, strategy_advisor, live_data_polling_task, redis_cache
     
     try:
         # Initialize Redis connection
@@ -67,6 +69,10 @@ async def lifespan(app: FastAPI):
         
         # Initialize cache service with Redis
         cache_service = CacheService(redis_client)
+        
+        # Initialize RedisCache for ML/prediction services
+        redis_cache = RedisCache(redis_url=os.getenv("REDIS_URL", "redis://localhost:6379"))
+        await redis_cache.connect()
         
         # Initialize WebSocket manager with enhanced configuration
         websocket_manager = WebSocketManager(
@@ -128,38 +134,41 @@ async def lifespan(app: FastAPI):
         
         # Initialize notification service
         notification_service = NotificationService(
-            redis_client=redis_client,
-            websocket_manager=websocket_manager
+            redis_url=os.getenv("REDIS_URL", "redis://localhost:6379")
         )
         
         # Initialize live match service
         live_match_service = LiveMatchService(
             live_data_service=live_data_service,
-            h2h_analyzer=h2h_analyzer,
-            websocket_manager=websocket_manager,
-            redis_client=redis_client
+            websocket_manager=websocket_manager
         )
         
         # Initialize ML predictor
-        ml_predictor = MLPredictor()
+        ml_predictor = MLPredictor(
+            live_data_service=live_data_service,
+            cache=redis_cache
+        )
         
         # Initialize predictive match simulator
-        predictive_match_simulator = PredictiveMatchSimulator(
+        predictive_match_simulator = MatchSimulator(
             live_data_service=live_data_service,
-            ml_predictor=ml_predictor
+            cache=redis_cache
         )
         
         # Initialize live prediction adjustor
         live_prediction_adjustor = LivePredictionAdjustor(
+            match_simulator=predictive_match_simulator,
             live_data_service=live_data_service,
-            ml_predictor=ml_predictor
+            cache=redis_cache,
+            websocket_manager=websocket_manager
         )
         
         # Initialize strategy advisor
         strategy_advisor = StrategyAdvisor(
+            match_simulator=predictive_match_simulator,
+            ml_predictor=ml_predictor,
             live_data_service=live_data_service,
-            predictive_simulator=predictive_match_simulator,
-            chip_analyzer=chip_analyzer
+            cache=redis_cache
         )
         
         # Warm cache for better performance
@@ -219,6 +228,9 @@ async def lifespan(app: FastAPI):
     
     if cache_service:
         await cache_service.close()
+    
+    if redis_cache:
+        await redis_cache.close()
     
     if redis_client:
         await redis_client.close()
