@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Modern UI</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0f;
+            color: #fff;
+            padding: 20px;
+        }
+        .status { margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; }
+        .success { border-left: 4px solid #00ff88; }
+        .error { border-left: 4px solid #ff4757; }
+        .info { border-left: 4px solid #3742fa; }
+    </style>
+</head>
+<body>
+    <h1>FPL H2H Analyzer - UI Debug</h1>
+    <div id="status"></div>
+    
+    <script>
+        const status = document.getElementById('status');
+        
+        // Check if Vite dev server is accessible
+        fetch('http://localhost:5174/')
+            .then(res => {
+                status.innerHTML += `<div class="status success">✓ Vite dev server running on port 5174</div>`;
+                return res.text();
+            })
+            .then(html => {
+                // Check if modern components are loaded
+                if (html.includes('glassMixins')) {
+                    status.innerHTML += `<div class="status success">✓ Modern theme system detected</div>`;
+                } else {
+                    status.innerHTML += `<div class="status error">✗ Modern theme system not found</div>`;
+                }
+                
+                if (html.includes('GlassCard')) {
+                    status.innerHTML += `<div class="status success">✓ GlassCard component referenced</div>`;
+                } else {
+                    status.innerHTML += `<div class="status error">✗ GlassCard component not found</div>`;
+                }
+                
+                if (html.includes('Inter')) {
+                    status.innerHTML += `<div class="status success">✓ Inter font loaded</div>`;
+                } else {
+                    status.innerHTML += `<div class="status error">✗ Inter font not loaded</div>`;
+                }
+                
+                // Check CSS
+                if (html.includes('--dark-bg')) {
+                    status.innerHTML += `<div class="status success">✓ CSS variables defined</div>`;
+                } else {
+                    status.innerHTML += `<div class="status error">✗ CSS variables not found</div>`;
+                }
+            })
+            .catch(err => {
+                status.innerHTML += `<div class="status error">✗ Failed to connect to dev server: ${err.message}</div>`;
+            });
+            
+        // Check backend
+        fetch('http://localhost:8000/api')
+            .then(res => {
+                status.innerHTML += `<div class="status success">✓ Backend API accessible</div>`;
+            })
+            .catch(err => {
+                status.innerHTML += `<div class="status error">✗ Backend not running (expected)</div>`;
+            });
+            
+        // Display instructions
+        setTimeout(() => {
+            status.innerHTML += `
+                <div class="status info">
+                    <h3>To see the modernized UI:</h3>
+                    <ol>
+                        <li>Open: <a href="http://localhost:5174" style="color: #3742fa;">http://localhost:5174</a></li>
+                        <li>The page should have a dark background (#0a0a0f)</li>
+                        <li>The header should have glassmorphic blur effect</li>
+                        <li>Components should have smooth animations</li>
+                    </ol>
+                    <h3>If you don't see changes:</h3>
+                    <ol>
+                        <li>Clear browser cache (Cmd+Shift+R)</li>
+                        <li>Check browser console for errors</li>
+                        <li>Restart the dev server</li>
+                    </ol>
+                </div>
+            `;
+        }, 1000);
+    </script>
+</body>
+</html>

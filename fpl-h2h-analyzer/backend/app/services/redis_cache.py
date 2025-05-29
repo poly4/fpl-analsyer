@@ -31,12 +31,7 @@ class RedisCache:
                 self.redis_url,
                 max_connections=self.max_connections,
                 decode_responses=False,  # We'll handle encoding/decoding
-                socket_keepalive=True,
-                socket_keepalive_options={
-                    1: 1,  # TCP_KEEPIDLE
-                    2: 5,  # TCP_KEEPINTVL  
-                    3: 5,  # TCP_KEEPCNT
-                }
+                socket_keepalive=True
             )
             self._client = aioredis.Redis(connection_pool=self._pool)
             

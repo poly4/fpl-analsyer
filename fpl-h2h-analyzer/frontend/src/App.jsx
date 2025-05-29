@@ -1,7 +1,11 @@
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { CssBaseline, Box, AppBar, Toolbar, Typography, Tabs, Tab, useMediaQuery } from '@mui/material';
+import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline, Box, AppBar, Toolbar, Typography, Tabs, Tab, useMediaQuery, alpha } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Import our modern design system
+import { createModernTheme, glassMixins, animations } from './styles/themes';
 
 // Debug logging
 console.log('🚀 Full FPL H2H Analyzer loading...');
@@ -46,26 +50,42 @@ const ServiceWorkerManager = lazy(() => import('./components/ServiceWorkerManage
   return { default: () => <div>ServiceWorker unavailable</div> };
 }));
 
-// Create a working theme (simplified from the complex one that caused black screen)
-const createAppTheme = (mode) => {
-  return createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: mode === 'dark' ? '#BB86FC' : '#6200EE',
-      },
-      secondary: {
-        main: mode === 'dark' ? '#03DAC6' : '#018786',
-      },
-      background: {
-        default: mode === 'dark' ? '#121212' : '#fafafa',
-        paper: mode === 'dark' ? '#1e1e1e' : '#ffffff',
-      },
-    },
-    shape: {
-      borderRadius: 12,
-    },
-  });
+// Animation variants for Framer Motion
+const headerVariants = {
+  hidden: { opacity: 0, y: -20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: animations.easing.easeOut
+    }
+  }
+};
+
+const tabVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      ease: animations.easing.spring
+    }
+  },
+  hover: {
+    scale: 1.02,
+    transition: { duration: 0.2 }
+  }
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
 };
 
 // Enhanced loading component with skeleton
@@ -84,7 +104,7 @@ const ComponentErrorBoundary = ({ children, name }) => {
   );
 };
 
-// Tab Panel Component
+// Enhanced Tab Panel Component with animations
 const TabPanel = ({ children, value, index, ...other }) => (
   <div
     role="tabpanel"
@@ -93,11 +113,24 @@ const TabPanel = ({ children, value, index, ...other }) => (
     aria-labelledby={`tab-${index}`}
     {...other}
   >
-    {value === index && (
-      <Box sx={{ minHeight: '60vh' }}>
-        {children}
-      </Box>
-    )}
+    <AnimatePresence mode="wait">
+      {value === index && (
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{
+            duration: 0.4,
+            ease: animations.easing.easeOut
+          }}
+        >
+          <Box sx={{ minHeight: '60vh', p: { xs: 2, md: 3 } }}>
+            {children}
+          </Box>
+        </motion.div>
+      )}
+    </AnimatePresence>
   </div>
 );
 
@@ -114,7 +147,7 @@ function App() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const theme = createAppTheme(darkMode ? 'dark' : 'light');
+  const theme = createModernTheme(darkMode ? 'dark' : 'light');
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Handle page change
@@ -141,32 +174,169 @@ function App() {
           <PerformanceMonitor />
           <Router>
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-              {/* Header */}
-              <AppBar position="static" elevation={0}>
-                <Toolbar>
-                  <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                    🏆 FPL H2H Analyzer Pro
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <WebSocketStatus />
-                  </Box>
-                </Toolbar>
-                
-                {/* Desktop Navigation */}
-                {!isMobile && (
-                  <Tabs 
-                    value={currentPage} 
-                    onChange={handlePageChange}
-                    sx={{ bgcolor: 'primary.dark' }}
-                    variant="fullWidth"
-                  >
-                    <Tab label="📊 Dashboard" />
-                    <Tab label="⚡ Live Battle" />
-                    <Tab label="📈 Analytics" />
-                    <Tab label="🎯 Simulator" />
-                  </Tabs>
-                )}
-              </AppBar>
+              {/* Modern Glassmorphic Header */}
+              <motion.div
+                variants={headerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                <AppBar 
+                  position="static" 
+                  elevation={0}
+                  sx={{
+                    ...glassMixins.glass,
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    backdropFilter: 'blur(30px)',
+                    WebkitBackdropFilter: 'blur(30px)',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: 0,
+                    boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+                    '&:hover': {
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      transform: 'none', // Override hover transform for header
+                    }
+                  }}
+                >
+                  <Toolbar sx={{ py: 1.5 }}>
+                    <motion.div style={{ flexGrow: 1 }}>
+                      <Typography 
+                        variant="h5" 
+                        component="div" 
+                        sx={{ 
+                          fontWeight: 700,
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          letterSpacing: '-0.5px'
+                        }}
+                      >
+                        🏆 FPL H2H Analyzer Pro
+                        <Box
+                          component="span"
+                          sx={{
+                            fontSize: '0.7rem',
+                            fontWeight: 500,
+                            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            ml: 1,
+                            opacity: 0.8
+                          }}
+                        >
+                          2025
+                        </Box>
+                      </Typography>
+                    </motion.div>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <WebSocketStatus />
+                    </Box>
+                  </Toolbar>
+                  
+                  {/* Modern Glass Navigation Pills */}
+                  {!isMobile && (
+                    <motion.div
+                      variants={staggerContainer}
+                      initial="hidden"
+                      animate="visible"
+                    >
+                      <Box 
+                        sx={{ 
+                          px: 3, 
+                          pb: 2,
+                          display: 'flex',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Tabs 
+                          value={currentPage} 
+                          onChange={handlePageChange}
+                          sx={{
+                            minHeight: 48,
+                            '& .MuiTabs-indicator': {
+                              display: 'none', // Hide default indicator
+                            },
+                            '& .MuiTab-root': {
+                              ...glassMixins.glassNav,
+                              minHeight: 40,
+                              minWidth: 120,
+                              margin: '0 6px',
+                              fontWeight: 500,
+                              fontSize: '0.9rem',
+                              textTransform: 'none',
+                              letterSpacing: '0.5px',
+                              color: 'rgba(255, 255, 255, 0.8)',
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '&:hover': {
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                transform: 'translateY(-1px) scale(1.02)',
+                                color: 'rgba(255, 255, 255, 0.95)',
+                                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.2)',
+                              },
+                              '&.Mui-selected': {
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: '#ffffff',
+                                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+                                transform: 'translateY(-1px)',
+                                border: '1px solid transparent',
+                                '&:hover': {
+                                  background: 'linear-gradient(135deg, #7c8cff 0%, #8a5bb8 100%)',
+                                  transform: 'translateY(-2px) scale(1.02)',
+                                }
+                              }
+                            }
+                          }}
+                        >
+                          <motion.div variants={tabVariants}>
+                            <Tab 
+                              label={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span>📊</span>
+                                  <span>Dashboard</span>
+                                </Box>
+                              } 
+                            />
+                          </motion.div>
+                          <motion.div variants={tabVariants}>
+                            <Tab 
+                              label={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span>⚡</span>
+                                  <span>Live Battle</span>
+                                </Box>
+                              } 
+                            />
+                          </motion.div>
+                          <motion.div variants={tabVariants}>
+                            <Tab 
+                              label={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span>📈</span>
+                                  <span>Analytics</span>
+                                </Box>
+                              } 
+                            />
+                          </motion.div>
+                          <motion.div variants={tabVariants}>
+                            <Tab 
+                              label={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span>🎯</span>
+                                  <span>Simulator</span>
+                                </Box>
+                              } 
+                            />
+                          </motion.div>
+                        </Tabs>
+                      </Box>
+                    </motion.div>
+                  )}
+                </AppBar>
+              </motion.div>
 
               {/* Main content area */}
               <Box 

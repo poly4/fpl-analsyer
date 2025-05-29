@@ -12,6 +12,7 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.19",
     "@mui/material": "^5.14.20",
+    "@mui/lab": "^5.0.0-alpha.154",
     "@types/d3": "^7.4.3",
     "axios": "^1.9.0",
     "d3": "^7.9.0",

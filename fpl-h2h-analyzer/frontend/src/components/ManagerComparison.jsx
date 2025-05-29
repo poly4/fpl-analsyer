@@ -22,20 +22,63 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  Badge
 } from '@mui/material';
 import {
   EmojiEvents,
   SwapHoriz,
   TrendingUp,
   SportsSoccer,
-  Timeline
+  Timeline,
+  Shield,
+  Star,
+  LocalFireDepartment
 } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import { fplApi } from '../services/api';
 import { H2HComparisonSkeleton } from './Skeletons';
 import { useOptimizedAPI } from '../hooks/useOptimizedAPI';
 import cacheService from '../services/cache';
 
+// Import modern components
+import {
+  GlassCard,
+  StatBox,
+  AnimatedNumber,
+  ScoreCounter,
+  LiveScore,
+  ModernTable,
+  glassMixins,
+  animations
+} from './modern';
+
+// Animation variants
+const pageVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: animations.easing.easeOut
+    }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: {
+      duration: 0.4,
+      ease: animations.easing.easeOut
+    }
+  }
+};
+
+// Enhanced TabPanel with animations
 function TabPanel({ children, value, index, ...other }) {
   return (
     <div
@@ -45,7 +88,19 @@ function TabPanel({ children, value, index, ...other }) {
       aria-labelledby={`comparison-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      <AnimatePresence mode="wait">
+        {value === index && (
+          <motion.div
+            key={index}
+            variants={pageVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+          >
+            <Box sx={{ py: 3 }}>{children}</Box>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -136,88 +191,284 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
   const isDraw = manager1Score === manager2Score;
 
   return (
-    <Box>
-      {/* Current Battle Summary */}
-      <Paper sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #1a1e3a 0%, #0a0e27 100%)' }}>
-        <Typography variant="h6" gutterBottom textAlign="center" color="primary">
-          Gameweek {battleData.gameweek} Battle
-        </Typography>
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Modern Battle Summary with Glassmorphism */}
+      <GlassCard 
+        variant="elevated" 
+        gradient="linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)"
+        sx={{ mb: 3 }}
+      >
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Chip 
+            label={`GAMEWEEK ${battleData.gameweek}`}
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              letterSpacing: '1px',
+              px: 2
+            }}
+          />
+        </Box>
         
         <Grid container spacing={3} alignItems="center">
-          <Grid item xs={5}>
-            <Box textAlign="center">
-              <Avatar sx={{ width: 60, height: 60, mx: 'auto', mb: 1, bgcolor: 'primary.main' }}>
-                {manager1.player_name.charAt(0)}
-              </Avatar>
-              <Typography variant="h6">{manager1.player_name}</Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {manager1.entry_name}
-              </Typography>
-              <Typography 
-                variant="h3" 
-                sx={{ 
-                  color: isDraw ? 'warning.main' : (manager1Winning ? 'success.main' : 'error.main'),
-                  fontWeight: 'bold'
-                }}
-              >
-                {manager1Score}
-              </Typography>
-              {battleData.manager1?.score?.chip && (
-                <Chip 
-                  label={battleData.manager1.score.chip.toUpperCase()} 
-                  size="small" 
-                  color="secondary" 
-                  sx={{ mt: 1 }}
+          <Grid item xs={12} md={5}>
+            <motion.div variants={cardVariants}>
+              <Box textAlign="center">
+                <Badge
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  badgeContent={
+                    manager1Winning && !isDraw ? 
+                    <EmojiEvents sx={{ color: '#ffd93d', fontSize: 20 }} /> : null
+                  }
+                >
+                  <Avatar 
+                    sx={{ 
+                      width: 80, 
+                      height: 80, 
+                      mx: 'auto', 
+                      mb: 2,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      fontSize: '2rem',
+                      fontWeight: 700,
+                      border: '3px solid rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
+                    }}
+                  >
+                    {manager1.player_name.charAt(0)}
+                  </Avatar>
+                </Badge>
+                
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600,
+                    mb: 0.5,
+                    background: manager1Winning && !isDraw ? 
+                      'linear-gradient(135deg, #00ff88 0%, #00d4aa 100%)' : 
+                      'inherit',
+                    WebkitBackgroundClip: manager1Winning && !isDraw ? 'text' : 'inherit',
+                    WebkitTextFillColor: manager1Winning && !isDraw ? 'transparent' : 'inherit',
+                    backgroundClip: manager1Winning && !isDraw ? 'text' : 'inherit',
+                  }}
+                >
+                  {manager1.player_name}
+                </Typography>
+                
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    mb: 2 
+                  }}
+                >
+                  {manager1.entry_name}
+                </Typography>
+                
+                <LiveScore 
+                  value={manager1Score}
+                  isLive={false}
+                  gradient={
+                    isDraw ? 'linear-gradient(135deg, #ffd93d 0%, #ff9500 100%)' : 
+                    (manager1Winning ? 'linear-gradient(135deg, #00ff88 0%, #00d4aa 100%)' : 
+                    'linear-gradient(135deg, #ff4757 0%, #ff3838 100%)')
+                  }
                 />
-              )}
-            </Box>
+                
+                {battleData.manager1?.score?.chip && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: 'spring' }}
+                  >
+                    <Chip 
+                      icon={<LocalFireDepartment />}
+                      label={battleData.manager1.score.chip.toUpperCase()} 
+                      size="small" 
+                      sx={{ 
+                        mt: 2,
+                        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                        color: '#fff',
+                        fontWeight: 600,
+                        '& .MuiChip-icon': {
+                          color: '#fff'
+                        }
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </Box>
+            </motion.div>
           </Grid>
           
-          <Grid item xs={2}>
+          <Grid item xs={12} md={2}>
             <Box textAlign="center">
-              <Typography variant="h5" color="text.secondary">VS</Typography>
+              <motion.div
+                animate={{ 
+                  rotate: [0, 180, 360],
+                  transition: { duration: 2, repeat: Infinity, ease: "linear" }
+                }}
+                style={{ display: 'inline-block' }}
+              >
+                <SwapHoriz 
+                  sx={{ 
+                    fontSize: 40, 
+                    color: 'rgba(255, 255, 255, 0.3)',
+                    mb: 1
+                  }} 
+                />
+              </motion.div>
+              
               {!isDraw && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  +{scoreDiff}
+                <Chip
+                  label={`+${scoreDiff}`}
+                  size="small"
+                  sx={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    fontWeight: 600
+                  }}
+                />
+              )}
+              {isDraw && (
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    color: '#ffd93d',
+                    fontWeight: 600
+                  }}
+                >
+                  DRAW
                 </Typography>
               )}
             </Box>
           </Grid>
           
-          <Grid item xs={5}>
-            <Box textAlign="center">
-              <Avatar sx={{ width: 60, height: 60, mx: 'auto', mb: 1, bgcolor: 'primary.main' }}>
-                {manager2.player_name.charAt(0)}
-              </Avatar>
-              <Typography variant="h6">{manager2.player_name}</Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {manager2.entry_name}
-              </Typography>
-              <Typography 
-                variant="h3" 
-                sx={{ 
-                  color: isDraw ? 'warning.main' : (!manager1Winning ? 'success.main' : 'error.main'),
-                  fontWeight: 'bold'
-                }}
-              >
-                {manager2Score}
-              </Typography>
-              {battleData.manager2?.score?.chip && (
-                <Chip 
-                  label={battleData.manager2.score.chip.toUpperCase()} 
-                  size="small" 
-                  color="secondary" 
-                  sx={{ mt: 1 }}
+          <Grid item xs={12} md={5}>
+            <motion.div variants={cardVariants}>
+              <Box textAlign="center">
+                <Badge
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  badgeContent={
+                    !manager1Winning && !isDraw ? 
+                    <EmojiEvents sx={{ color: '#ffd93d', fontSize: 20 }} /> : null
+                  }
+                >
+                  <Avatar 
+                    sx={{ 
+                      width: 80, 
+                      height: 80, 
+                      mx: 'auto', 
+                      mb: 2,
+                      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                      fontSize: '2rem',
+                      fontWeight: 700,
+                      border: '3px solid rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 8px 32px rgba(240, 147, 251, 0.3)'
+                    }}
+                  >
+                    {manager2.player_name.charAt(0)}
+                  </Avatar>
+                </Badge>
+                
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600,
+                    mb: 0.5,
+                    background: !manager1Winning && !isDraw ? 
+                      'linear-gradient(135deg, #00ff88 0%, #00d4aa 100%)' : 
+                      'inherit',
+                    WebkitBackgroundClip: !manager1Winning && !isDraw ? 'text' : 'inherit',
+                    WebkitTextFillColor: !manager1Winning && !isDraw ? 'transparent' : 'inherit',
+                    backgroundClip: !manager1Winning && !isDraw ? 'text' : 'inherit',
+                  }}
+                >
+                  {manager2.player_name}
+                </Typography>
+                
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    mb: 2 
+                  }}
+                >
+                  {manager2.entry_name}
+                </Typography>
+                
+                <LiveScore 
+                  value={manager2Score}
+                  isLive={false}
+                  gradient={
+                    isDraw ? 'linear-gradient(135deg, #ffd93d 0%, #ff9500 100%)' : 
+                    (!manager1Winning ? 'linear-gradient(135deg, #00ff88 0%, #00d4aa 100%)' : 
+                    'linear-gradient(135deg, #ff4757 0%, #ff3838 100%)')
+                  }
                 />
-              )}
-            </Box>
+                
+                {battleData.manager2?.score?.chip && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: 'spring' }}
+                  >
+                    <Chip 
+                      icon={<LocalFireDepartment />}
+                      label={battleData.manager2.score.chip.toUpperCase()} 
+                      size="small" 
+                      sx={{ 
+                        mt: 2,
+                        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                        color: '#fff',
+                        fontWeight: 600,
+                        '& .MuiChip-icon': {
+                          color: '#fff'
+                        }
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </Box>
+            </motion.div>
           </Grid>
         </Grid>
-      </Paper>
+      </GlassCard>
 
-      {/* Detailed Comparison Tabs */}
-      <Paper sx={{ width: '100%' }}>
-        <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth">
+      {/* Detailed Comparison Tabs with Glassmorphism */}
+      <GlassCard sx={{ width: '100%' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange} 
+          variant="fullWidth"
+          sx={{
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            '& .MuiTab-root': {
+              color: 'rgba(255, 255, 255, 0.7)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                color: '#fff',
+                background: 'rgba(255, 255, 255, 0.05)'
+              }
+            },
+            '& .Mui-selected': {
+              color: '#fff !important',
+              background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)',
+            },
+            '& .MuiTabs-indicator': {
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              height: 3,
+              borderRadius: '3px 3px 0 0'
+            }
+          }}
+        >
           <Tab icon={<EmojiEvents />} label="Head to Head" />
           <Tab icon={<SportsSoccer />} label="Squad Comparison" />
           <Tab icon={<SwapHoriz />} label="Transfer Analysis" />
@@ -227,113 +478,221 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
         <TabPanel value={tabValue} index={0}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
+              <motion.div variants={cardVariants}>
+                <GlassCard>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      mb: 3,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}
+                  >
                     Overall H2H Record
                   </Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <Box display="flex" justifyContent="space-around">
-                    <Box textAlign="center">
-                      <Typography variant="h4" color="success.main">
-                        {manager1.matches_won}
-                      </Typography>
-                      <Typography variant="body2">{manager1.player_name} Wins</Typography>
-                    </Box>
-                    <Box textAlign="center">
-                      <Typography variant="h4" color="warning.main">
-                        {manager1.matches_drawn}
-                      </Typography>
-                      <Typography variant="body2">Draws</Typography>
-                    </Box>
-                    <Box textAlign="center">
-                      <Typography variant="h4" color="error.main">
-                        {manager1.matches_lost}
-                      </Typography>
-                      <Typography variant="body2">{manager2.player_name} Wins</Typography>
-                    </Box>
+                  
+                  <Box display="flex" justifyContent="space-around" gap={2}>
+                    <StatBox
+                      title={`${manager1.player_name} Wins`}
+                      value={manager1.matches_won}
+                      variant="success"
+                      icon={<EmojiEvents />}
+                      size="small"
+                    />
+                    <StatBox
+                      title="Draws"
+                      value={manager1.matches_drawn}
+                      variant="warning"
+                      icon={<SwapHoriz />}
+                      size="small"
+                    />
+                    <StatBox
+                      title={`${manager2.player_name} Wins`}
+                      value={manager1.matches_lost}
+                      variant="error"
+                      icon={<EmojiEvents />}
+                      size="small"
+                    />
                   </Box>
-                </CardContent>
-              </Card>
+                </GlassCard>
+              </motion.div>
             </Grid>
             
             <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
+              <motion.div variants={cardVariants}>
+                <GlassCard>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      mb: 3,
+                      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}
+                  >
                     Season Performance
                   </Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <List dense>
+                  
+                  <List dense sx={{ '& .MuiListItem-root': { px: 2, py: 1.5, borderRadius: 2, mb: 1, background: 'rgba(255, 255, 255, 0.02)' } }}>
                     <ListItem>
                       <ListItemText 
-                        primary="League Position"
-                        secondary={`${manager1.player_name}: #${manager1.rank} | ${manager2.player_name}: #${manager2.rank}`}
+                        primary={
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
+                            League Position
+                          </Typography>
+                        }
+                        secondary={
+                          <Box display="flex" gap={2}>
+                            <Chip 
+                              label={`${manager1.player_name}: #${manager1.rank}`}
+                              size="small"
+                              sx={{ 
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: '#fff',
+                                fontWeight: 600
+                              }}
+                            />
+                            <Chip 
+                              label={`${manager2.player_name}: #${manager2.rank}`}
+                              size="small"
+                              sx={{ 
+                                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                                color: '#fff',
+                                fontWeight: 600
+                              }}
+                            />
+                          </Box>
+                        }
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText 
-                        primary="Total Points (H2H)"
-                        secondary={`${manager1.player_name}: ${manager1.total} | ${manager2.player_name}: ${manager2.total}`}
+                        primary={
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
+                            Total Points (H2H)
+                          </Typography>
+                        }
+                        secondary={
+                          <Box display="flex" gap={2} mt={1}>
+                            <Box>
+                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                {manager1.player_name}
+                              </Typography>
+                              <AnimatedNumber value={manager1.total} format="number" />
+                            </Box>
+                            <Box>
+                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                {manager2.player_name}
+                              </Typography>
+                              <AnimatedNumber value={manager2.total} format="number" />
+                            </Box>
+                          </Box>
+                        }
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText 
-                        primary="Points For"
-                        secondary={`${manager1.player_name}: ${manager1.points_for} | ${manager2.player_name}: ${manager2.points_for}`}
+                        primary={
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
+                            Points For
+                          </Typography>
+                        }
+                        secondary={
+                          <Box display="flex" gap={2} mt={1}>
+                            <Box>
+                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                {manager1.player_name}
+                              </Typography>
+                              <AnimatedNumber value={manager1.points_for} format="number" />
+                            </Box>
+                            <Box>
+                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                {manager2.player_name}
+                              </Typography>
+                              <AnimatedNumber value={manager2.points_for} format="number" />
+                            </Box>
+                          </Box>
+                        }
                       />
                     </ListItem>
                   </List>
-                </CardContent>
-              </Card>
+                </GlassCard>
+              </motion.div>
             </Grid>
           </Grid>
         </TabPanel>
         
         <TabPanel value={tabValue} index={1}>
-          <Typography variant="h6" gutterBottom>
-            Differential Players
-          </Typography>
-          <Divider sx={{ mb: 2 }} />
-          
-          {battleData.differentials && battleData.differentials.length > 0 ? (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Player</TableCell>
-                    <TableCell>Team</TableCell>
-                    <TableCell>Owned By</TableCell>
-                    <TableCell align="right">Points</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {battleData.differentials.map((diff, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{diff.name || `Player ${diff.player_id}`}</TableCell>
-                      <TableCell>{diff.team || 'Unknown'}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={diff.owner === manager1.entry ? manager1.player_name : manager2.player_name}
-                          size="small"
-                          color={diff.owner === manager1.entry ? 'primary' : 'secondary'}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" fontWeight="bold">
-                          {diff.points}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No differential players in current gameweek
+          <motion.div variants={cardVariants}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 600,
+                mb: 3,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Differential Players
             </Typography>
-          )}
+            
+            {battleData.differentials && battleData.differentials.length > 0 ? (
+              <ModernTable
+                columns={[
+                  { id: 'name', label: 'Player', sortable: true },
+                  { id: 'team', label: 'Team', sortable: true },
+                  { id: 'owner', label: 'Owned By', sortable: false },
+                  { id: 'points', label: 'Points', align: 'right', sortable: true }
+                ]}
+                data={battleData.differentials.map((diff, index) => ({
+                  id: index,
+                  name: diff.name || `Player ${diff.player_id}`,
+                  team: diff.team || 'Unknown',
+                  owner: (
+                    <Chip 
+                      label={diff.owner === manager1.entry ? manager1.player_name : manager2.player_name}
+                      size="small"
+                      sx={{
+                        background: diff.owner === manager1.entry ? 
+                          'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 
+                          'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                        color: '#fff',
+                        fontWeight: 600
+                      }}
+                    />
+                  ),
+                  points: (
+                    <AnimatedNumber 
+                      value={diff.points} 
+                      format="number"
+                      sx={{ fontWeight: 700, fontSize: '1.1rem' }}
+                    />
+                  )
+                }))}
+                defaultSort={{ column: 'points', direction: 'desc' }}
+              />
+            ) : (
+              <GlassCard>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    textAlign: 'center',
+                    py: 4
+                  }}
+                >
+                  No differential players in current gameweek
+                </Typography>
+              </GlassCard>
+            )}
+          </motion.div>
         </TabPanel>
         
         <TabPanel value={tabValue} index={2}>
@@ -423,8 +782,8 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
             ))}
           </Grid>
         </TabPanel>
-      </Paper>
-    </Box>
+      </GlassCard>
+    </motion.div>
   );
 }
 

@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 from .h2h_analyzer import H2HAnalyzer
-from .live_data import LiveDataService
+from .live_data_v2 import LiveDataService
 from .analytics.differential_analyzer import DifferentialAnalyzer
 from .analytics.predictive_engine import PredictiveEngine
 from .analytics.chip_analyzer import ChipAnalyzer
@@ -147,7 +147,7 @@ class EnhancedH2HAnalyzer:
                 self.live_data_service.get_manager_picks(manager2_id, gameweek),
                 self.live_data_service.get_bootstrap_static(),
                 self.live_data_service.get_live_gameweek_data(gameweek),
-                self.live_data_service.get_fixtures(event=gameweek),
+                self.live_data_service.get_fixtures(gameweek=gameweek),
                 return_exceptions=True
             )
             
@@ -322,6 +322,15 @@ class EnhancedH2HAnalyzer:
                 "core_analysis": core_analysis,
                 "differential_analysis": differential_results,
                 "prediction": prediction_results,
+                "chip_strategies": {
+                    "manager1": chip_strategy_m1,
+                    "manager2": chip_strategy_m2
+                },
+                "patterns": {
+                    "manager1": patterns_m1,
+                    "manager2": patterns_m2,
+                    "h2h": h2h_patterns
+                },
                 "summary": {
                     "advantage_score": self._calculate_advantage_score(core_analysis, differential_results),
                     "confidence_level": self._calculate_confidence_level(prediction_results),
@@ -537,7 +546,7 @@ class EnhancedH2HAnalyzer:
                 try:
                     # Use the FPL API endpoint for H2H matches
                     endpoint = f"leagues-h2h-matches/league/{league_id}/"
-                    league_matches_data = await self.live_data_service._fetch_data(endpoint)
+                    league_matches_data = await self.live_data_service._fetch_with_priority(endpoint)
                     
                     if not league_matches_data:
                         continue

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test</title>
+</head>
+<body>
+  <div id="root">
+    <h1>Loading...</h1>
+  </div>
+  <script>
+    console.log('Page loaded');
+    
+    // Check if the root element exists
+    const root = document.getElementById('root');
+    if (root) {
+      console.log('Root element found');
+    }
+    
+    // Try to load the main JS file
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = '/assets/index-BQNFGDuP.js';
+    script.onload = () => console.log('Script loaded successfully');
+    script.onerror = (e) => console.error('Script failed to load', e);
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>

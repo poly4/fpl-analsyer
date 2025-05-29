@@ -99,19 +99,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    // Enable tree shaking
     rollupOptions: {
-      treeshake: {
-        moduleSideEffects: false
-      },
       output: {
-        // Manual chunks for better caching
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          mui: ['@mui/material', '@emotion/react', '@emotion/styled'],
-          charts: ['recharts', 'd3'],
-          three: ['three', '@react-three/fiber', '@react-three/drei']
-        },
         // Optimize chunk names
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';

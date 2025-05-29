@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
-from ..services.live_data import LiveDataService
+from ..services.live_data_v2 import LiveDataService
 from ..models.manager import ManagerProfile, GameweekPerformance, ChipUsage
 from ..models.h2h_league import H2HMatch, H2HLeagueEntry, H2HLeagueStandings
 

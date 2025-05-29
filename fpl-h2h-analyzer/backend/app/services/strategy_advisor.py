@@ -8,7 +8,7 @@ import numpy as np
 
 from app.services.match_simulator import MatchSimulator, H2HPrediction
 from app.services.ml_predictor import MLPredictor
-from app.services.live_data import LiveDataService
+from app.services.live_data_v2 import LiveDataService
 from app.services.redis_cache import RedisCache
 
 logger = logging.getLogger(__name__)

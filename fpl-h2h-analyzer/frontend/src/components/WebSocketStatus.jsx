@@ -25,7 +25,9 @@ import {
   Info,
   Circle
 } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import websocketService from '../services/websocket';
+import { GlassCard, GlassStatus } from './modern/';
 
 function WebSocketStatus() {
   const [isConnected, setIsConnected] = useState(false);
@@ -119,17 +121,104 @@ function WebSocketStatus() {
   return (
     <>
       <Tooltip title={`WebSocket: ${connectionState}`}>
-        <Chip
-          icon={getStatusIcon()}
-          label={isConnected ? 'Live' : 'Offline'}
-          color={getStatusColor()}
-          size="small"
-          onClick={() => setDetailsOpen(true)}
-          sx={{ cursor: 'pointer' }}
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Box
+            onClick={() => setDetailsOpen(true)}
+            sx={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
+              padding: '8px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease-out',
+              '&:hover': {
+                background: 'rgba(255, 255, 255, 0.15)',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+              }
+            }}
+          >
+            <motion.div
+              animate={connectionState === 'connecting' ? {
+                scale: [1, 1.2, 1],
+                transition: { duration: 1, repeat: Infinity }
+              } : {}}
+            >
+              <Circle 
+                sx={{ 
+                  fontSize: 8, 
+                  color: isConnected ? '#00ff88' : connectionState === 'connecting' ? '#ffd93d' : '#ff4757',
+                  filter: isConnected ? 'drop-shadow(0 0 4px #00ff88)' : undefined
+                }} 
+              />
+            </motion.div>
+            
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontWeight: 500,
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}
+            >
+              {isConnected ? 'Live' : connectionState === 'connecting' ? 'Connecting' : 'Offline'}
+            </Typography>
+            
+            {isConnected && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'rgba(0, 255, 136, 0.8)',
+                    fontSize: '0.65rem',
+                    fontWeight: 400
+                  }}
+                >
+                  {messageCount > 0 && `${messageCount} msgs`}
+                </Typography>
+              </motion.div>
+            )}
+          </Box>
+        </motion.div>
       </Tooltip>
       
-      <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={detailsOpen} 
+        onClose={() => setDetailsOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'rgba(26, 26, 46, 0.9)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '20px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          }
+        }}
+        BackdropProps={{
+          sx: {
+            backdropFilter: 'blur(8px)',
+            background: 'rgba(0, 0, 0, 0.5)',
+          }
+        }}
+      >
         <DialogTitle>
           WebSocket Connection Details
         </DialogTitle>

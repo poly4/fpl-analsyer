@@ -8,7 +8,7 @@ import math
 import random
 from enum import Enum
 
-from app.services.live_data import LiveDataService
+from app.services.live_data_v2 import LiveDataService
 from app.services.redis_cache import RedisCache
 
 logger = logging.getLogger(__name__)

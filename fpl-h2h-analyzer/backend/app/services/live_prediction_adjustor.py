@@ -6,7 +6,7 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 
 from app.services.match_simulator import MatchSimulator, H2HPrediction, MatchState, PlayerPrediction
-from app.services.live_data import LiveDataService
+from app.services.live_data_v2 import LiveDataService
 from app.services.redis_cache import RedisCache
 from app.websocket.live_updates import WebSocketManager
 

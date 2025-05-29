@@ -4,7 +4,7 @@ import logging
 from typing import Dict, List, Optional, Set, Any
 from datetime import datetime
 from enum import Enum
-import aioredis
+import redis.asyncio as aioredis
 from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)

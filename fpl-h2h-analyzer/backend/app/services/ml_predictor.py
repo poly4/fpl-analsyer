@@ -14,7 +14,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import joblib
 import os
 
-from app.services.live_data import LiveDataService
+from app.services.live_data_v2 import LiveDataService
 from app.services.redis_cache import RedisCache
 
 logger = logging.getLogger(__name__)
