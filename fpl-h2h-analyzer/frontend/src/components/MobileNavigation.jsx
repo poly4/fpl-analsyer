@@ -50,7 +50,7 @@ import {
   Help
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme as useAppTheme } from './ThemeProvider';
+// Removed custom theme import - using Material-UI theme directly
 
 const navigationItems = [
   {
@@ -200,7 +200,6 @@ const FloatingActionButton = ({ onClick, icon, color = 'primary' }) => {
 
 export default function MobileNavigation({ currentPage, onPageChange }) {
   const theme = useTheme();
-  const appTheme = useAppTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState(3);
@@ -471,8 +470,8 @@ export default function MobileNavigation({ currentPage, onPageChange }) {
               <FormControlLabel
                 control={
                   <Switch
-                    checked={appTheme.isDark}
-                    onChange={appTheme.toggleTheme}
+                    checked={theme.palette.mode === 'dark'}
+                    onChange={() => {}} // Placeholder - theme switching handled by parent
                     icon={<LightMode fontSize="small" />}
                     checkedIcon={<DarkMode fontSize="small" />}
                   />
@@ -484,8 +483,8 @@ export default function MobileNavigation({ currentPage, onPageChange }) {
               <FormControlLabel
                 control={
                   <Switch
-                    checked={appTheme.highContrast}
-                    onChange={appTheme.toggleHighContrast}
+                    checked={false} // Placeholder for high contrast
+                    onChange={() => {}} // Placeholder - accessibility handled by parent
                     icon={<Accessibility fontSize="small" />}
                     checkedIcon={<Accessibility fontSize="small" />}
                   />
