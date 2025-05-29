@@ -312,9 +312,4 @@ export const PerformanceIndicator = ({ performance, size = 'medium' }) => {
   );
 };
 
-export default {
-  PerformanceBadge,
-  BadgeCollection,
-  PerformanceIndicator,
-  BADGE_CONFIGS
-};
+export { BADGE_CONFIGS };

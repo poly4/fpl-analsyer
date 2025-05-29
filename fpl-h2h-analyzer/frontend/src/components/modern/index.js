@@ -42,9 +42,8 @@ export {
 // Layout Components
 export { default as BentoGrid } from './BentoGrid';
 export { 
-  BentoItem, 
-  HeroCard, 
-  CompactGrid 
+  BentoCard, 
+  BENTO_SIZES 
 } from './BentoGrid';
 
 // Visual Indicators

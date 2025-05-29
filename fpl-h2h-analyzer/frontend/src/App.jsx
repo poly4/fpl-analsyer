@@ -58,7 +58,7 @@ const headerVariants = {
     y: 0,
     transition: {
       duration: 0.6,
-      ease: animations.easing.easeOut
+      ease: "easeOut"
     }
   }
 };
@@ -70,7 +70,7 @@ const tabVariants = {
     scale: 1,
     transition: {
       duration: 0.3,
-      ease: animations.easing.spring
+      ease: "easeInOut"
     }
   },
   hover: {
@@ -122,7 +122,7 @@ const TabPanel = ({ children, value, index, ...other }) => (
           exit={{ opacity: 0, y: -20 }}
           transition={{
             duration: 0.4,
-            ease: animations.easing.easeOut
+            ease: "easeOut"
           }}
         >
           <Box sx={{ minHeight: '60vh', p: { xs: 2, md: 3 } }}>

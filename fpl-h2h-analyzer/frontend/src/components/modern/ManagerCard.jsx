@@ -9,7 +9,7 @@ import {
   EmojiEvents
 } from '@mui/icons-material';
 import GlassCard from './GlassCard';
-import { AnimatedNumber, LiveScore } from './AnimatedNumber';
+import AnimatedNumber, { LiveScore } from './AnimatedNumber';
 import { BadgeCollection, PerformanceIndicator } from './PerformanceBadges';
 import { glassMixins } from '../../styles/themes';
 

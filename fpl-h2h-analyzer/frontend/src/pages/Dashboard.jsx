@@ -4,7 +4,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import modern components
-import BentoGrid, { BentoItem, BENTO_SIZES } from '../components/modern/BentoGrid';
+import BentoGrid, { BentoCard, BENTO_SIZES } from '../components/modern/BentoGrid';
 import { GlassCard, StatBox, AnimatedNumber, LiveScore } from '../components/modern';
 import { glassMixins, animations } from '../styles/themes';
 
