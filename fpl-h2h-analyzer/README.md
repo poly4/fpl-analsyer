@@ -2,6 +2,10 @@
 
 A comprehensive, high-performance Fantasy Premier League (FPL) Head-to-Head analysis tool with real-time insights, machine learning predictions, and advanced analytics. Built with modern performance optimization and accessibility features.
 
+## 🎉 Current Status: FULLY FUNCTIONAL
+
+The application is now **fully operational** with real FPL data integration and all UI features working correctly. Recent fixes have resolved all critical issues, and the app is ready for use with the "Top Dog Premier League" (ID: 620117).
+
 ## 🚀 Features
 
 ### 🔥 NEW Performance & Polish Features (v5.0)
@@ -134,6 +138,15 @@ docker-compose up -d
 
 The application will automatically fetch FPL data and be ready to use!
 
+### ✅ Current Working Features
+- **Real FPL Data**: Connected to "Top Dog Premier League" (ID: 620117)
+- **Live Scores**: Abdul Nasir vs Darren Phillips and 18 other managers
+- **4 Main Tabs**: Dashboard, Live Battle, Analytics, Simulator - all functional
+- **Dark/Light Mode**: Theme toggle with Material-UI
+- **Mobile Support**: Responsive design with bottom navigation
+- **Rate Limiting**: 90 requests/minute with token bucket algorithm
+- **WebSocket**: Real-time updates (verify during match days)
+
 ## 📱 Using the App
 
 ### Navigation
@@ -239,6 +252,13 @@ npm run bundle-analyzer
 
 ## 🐛 Troubleshooting
 
+### Black Screen Issues (RESOLVED in v5.1)
+If you encounter a black screen:
+1. **Clear Browser Cache**: Force refresh with Ctrl+Shift+R (Cmd+Shift+R on Mac)
+2. **Check Console**: Open DevTools (F12) and look for errors
+3. **Verify Services**: Ensure all Docker containers are running with `docker-compose ps`
+4. **Theme Issues**: The issue was caused by complex Material-UI theme - now fixed with simplified theme
+
 ### Performance Issues
 1. **Slow Loading**: Check cache hit rates in performance dashboard
 2. **High Memory**: Monitor memory usage and enable optimizations
@@ -253,6 +273,11 @@ npm run bundle-analyzer
 1. **Connection Failed**: Check backend status with `docker-compose ps`
 2. **No Live Updates**: Verify WebSocket connection in browser dev tools
 3. **Performance Issues**: Monitor WebSocket metrics in dashboard
+
+### API & Data Issues
+1. **404 Errors**: Check API endpoints match those in `/api/health`
+2. **No Data**: Verify FPL API connection status in health check
+3. **Rate Limiting**: Monitor token availability at `/api/rate-limiter/metrics`
 
 ## 📈 Performance Metrics
 
@@ -308,6 +333,16 @@ MIT License - see LICENSE file for details.
 ---
 
 ## 🎉 Recent Updates
+
+### v5.1 (May 29, 2025) - Critical Fix & Full Restoration 🐛
+- **FIXED**: Resolved black screen issue caused by Material-UI theme complexity
+- **FIXED**: Python 3.12 compatibility issues with dataclasses and aioredis
+- **FIXED**: Rate limiter endpoint mismatch (now correctly uses /api/rate-limiter/metrics)
+- **RESTORED**: All 4 main tabs (Dashboard, Live Battle, Analytics, Simulator)
+- **IMPROVED**: Simplified theme system for better stability
+- **ADDED**: Comprehensive error boundaries for graceful error handling
+- **UPDATED**: API client with correct endpoint mappings
+- **VERIFIED**: Full functionality with real FPL data from Top Dog Premier League
 
 ### v5.0 (May 28, 2025) - Performance & Polish 🚀
 - **NEW**: Glassmorphism UI with modern design
