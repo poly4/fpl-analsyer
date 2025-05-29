@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -42,21 +42,72 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, SwapHoriz, Money, AttachMoney } from '@mui/icons-material';
 
-function TransferROI({ data }) {
+function TransferROI({ data, manager1Id, manager2Id }) {
   const [timeframe, setTimeframe] = useState('recent');
   const [metricType, setMetricType] = useState('roi');
+  const [transferData, setTransferData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  if (!data?.transfers) {
+  // Fetch transfer ROI data
+  useEffect(() => {
+    const fetchTransferData = async () => {
+      if (!manager1Id) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`/api/analytics/v2/transfer-roi/${manager1Id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch transfer ROI data');
+        }
+        const result = await response.json();
+        setTransferData(result);
+      } catch (err) {
+        console.error('Error fetching transfer data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTransferData();
+  }, [manager1Id]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <LinearProgress sx={{ width: '50%' }} />
+      </Box>
+    );
+  }
+
+  if (error) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography variant="h6" color="textSecondary">
-          No transfer ROI data available
+        <Typography variant="h6" color="error">
+          Error: {error}
         </Typography>
       </Box>
     );
   }
 
-  const { transfers } = data;
+  // Try to use transfer data from comprehensive analytics or dedicated endpoint
+  const transfers = data?.transfers || transferData;
+  
+  if (!transfers || (!transfers.transfer_timeline && !transfers.recent_transfers)) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography variant="h6" color="textSecondary">
+          No transfer ROI data available
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+          Transfer data will appear once managers make transfers
+        </Typography>
+      </Box>
+    );
+  }
 
   // Prepare transfer timeline data
   const transferTimeline = transfers.transfer_timeline?.map(transfer => ({

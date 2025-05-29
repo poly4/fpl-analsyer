@@ -34,17 +34,21 @@ import {
 import { EmojiEvents, TrendingUp, Psychology, Timeline } from '@mui/icons-material';
 
 function HistoricalPatterns({ data }) {
-  if (!data?.historical) {
+  // The comprehensive analytics endpoint returns historical_patterns, not historical
+  const historical = data?.historical_patterns || data?.historical;
+  
+  if (!historical) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography variant="h6" color="textSecondary">
           No historical pattern data available
         </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+          Make sure to analyze two managers with H2H history
+        </Typography>
       </Box>
     );
   }
-
-  const { historical } = data;
   
   // Prepare historical performance data
   const performanceData = historical.h2h_history?.map((match, index) => ({

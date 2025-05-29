@@ -32,6 +32,9 @@ import {
   Timeline
 } from '@mui/icons-material';
 import { fplApi } from '../services/api';
+import { H2HComparisonSkeleton } from './Skeletons';
+import { useOptimizedAPI } from '../hooks/useOptimizedAPI';
+import cacheService from '../services/cache';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -64,18 +67,35 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
       setLoading(true);
       setError(null);
 
-      // Fetch battle analysis
-      const battle = await fplApi.getBattleDetails(manager1.entry, manager2.entry);
-      setBattleData(battle);
+      // Check cache first
+      const cacheKey = `h2h_comparison_${manager1.entry}_${manager2.entry}`;
+      const cached = cacheService.get(cacheKey);
+      
+      if (cached) {
+        setBattleData(cached.battle);
+        setManager1Info(cached.m1Info);
+        setManager2Info(cached.m2Info);
+        setLoading(false);
+        return;
+      }
 
-      // Fetch manager details
-      const [m1Info, m2Info] = await Promise.all([
+      // Fetch battle analysis and manager details in parallel
+      const [battle, m1Info, m2Info] = await Promise.all([
+        fplApi.getBattleDetails(manager1.entry, manager2.entry),
         fplApi.getManagerInfo(manager1.entry),
         fplApi.getManagerInfo(manager2.entry)
       ]);
       
+      setBattleData(battle);
       setManager1Info(m1Info);
       setManager2Info(m2Info);
+      
+      // Cache the results
+      cacheService.set(cacheKey, {
+        battle,
+        m1Info,
+        m2Info
+      }, 'h2h_analytics');
 
     } catch (err) {
       console.error('Error fetching comparison data:', err);
@@ -90,11 +110,7 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
   };
 
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
+    return <H2HComparisonSkeleton />;
   }
 
   if (error) {

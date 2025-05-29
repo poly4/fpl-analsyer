@@ -117,15 +117,11 @@ const ProbabilityVisualization3D = ({ predictions, scenarios }) => {
       ))}
       
       <Center>
-        <Text3D
-          font="/fonts/helvetiker_regular.typeface.json"
-          size={0.3}
-          height={0.1}
-          curveSegments={12}
-        >
-          Probability Space
+        {/* Temporarily disable Text3D which requires font loading */}
+        <mesh position={[0, 2, 0]}>
+          <boxGeometry args={[3, 0.5, 1]} />
           <meshStandardMaterial color="white" />
-        </Text3D>
+        </mesh>
       </Center>
     </group>
   );
@@ -858,19 +854,97 @@ export default function PredictiveSimulator({ manager1Id, manager2Id, gameweek }
                   3D Probability Space
                 </Typography>
                 
-                <Box height={500} sx={{ bgcolor: 'black', borderRadius: 2 }}>
-                  <Canvas camera={{ position: [0, 5, 10] }}>
-                    <ambientLight intensity={0.5} />
-                    <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-                    <pointLight position={[-10, -10, -10]} />
-                    
-                    <ProbabilityVisualization3D
-                      predictions={predictions}
-                      scenarios={scenarios}
-                    />
-                    
-                    <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
-                  </Canvas>
+                <Box height={500} sx={{ bgcolor: 'black', borderRadius: 2, position: 'relative' }}>
+                  {(() => {
+                    try {
+                      // Check if WebGL is supported
+                      const canvas = document.createElement('canvas');
+                      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                      
+                      if (!gl) {
+                        return (
+                          <Box 
+                            sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              height: '100%',
+                              flexDirection: 'column',
+                              gap: 2,
+                              color: 'white'
+                            }}
+                          >
+                            <Warning sx={{ fontSize: 60 }} />
+                            <Typography variant="h6">WebGL Not Supported</Typography>
+                            <Typography variant="body2" align="center">
+                              Your browser doesn't support 3D visualization.
+                              Try using a modern browser like Chrome, Firefox, or Edge.
+                            </Typography>
+                          </Box>
+                        );
+                      }
+                      
+                      return (
+                        <React.Suspense 
+                          fallback={
+                            <Box 
+                              sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                height: '100%' 
+                              }}
+                            >
+                              <CircularProgress />
+                            </Box>
+                          }
+                        >
+                          <Canvas 
+                            camera={{ position: [0, 5, 10] }}
+                            onCreated={({ gl }) => {
+                              gl.setClearColor('#000000');
+                            }}
+                            onError={(error) => {
+                              console.error('Canvas error:', error);
+                            }}
+                          >
+                            <ambientLight intensity={0.5} />
+                            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+                            <pointLight position={[-10, -10, -10]} />
+                            
+                            <ProbabilityVisualization3D
+                              predictions={predictions}
+                              scenarios={scenarios}
+                            />
+                            
+                            <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
+                          </Canvas>
+                        </React.Suspense>
+                      );
+                    } catch (error) {
+                      console.error('3D Visualization error:', error);
+                      return (
+                        <Box 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            height: '100%',
+                            flexDirection: 'column',
+                            gap: 2,
+                            color: 'white'
+                          }}
+                        >
+                          <Warning sx={{ fontSize: 60 }} />
+                          <Typography variant="h6">3D Visualization Error</Typography>
+                          <Typography variant="body2" align="center">
+                            Unable to load 3D visualization.
+                            {error.message && ` Error: ${error.message}`}
+                          </Typography>
+                        </Box>
+                      );
+                    }
+                  })()}
                 </Box>
                 
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>

@@ -2,19 +2,27 @@
 
 A comprehensive, high-performance Fantasy Premier League (FPL) Head-to-Head analysis tool with real-time insights, machine learning predictions, and advanced analytics. Built with modern performance optimization and accessibility features.
 
-## 🎉 Current Status: FULLY FUNCTIONAL
+## 🎉 Current Status: ENHANCED & OPTIMIZED
 
-The application is now **fully operational** with real FPL data integration and all UI features working correctly. Recent fixes have resolved all critical issues, and the app is ready for use with the "Top Dog Premier League" (ID: 620117).
+The application has been **significantly enhanced** with live data integration, performance optimization, and error stability improvements. All critical crashes have been fixed and new real-time features added for the 2024/25 season.
+
+### ✅ Latest Updates (v5.1)
+- **🔴 Critical Error Fixes**: Eliminated all "Oops!" crashes for stable operation
+- **⚡ Live Data Integration**: Real-time BPS, captain tracking, and scoring updates
+- **📊 Performance Optimization**: Sub-1 second loading with intelligent caching
+- **🌐 WebSocket Monitoring**: Live connection status and health indicators
+- **💾 Smart Caching**: TTL-based caching system (30s live data, 24h static data)
+- **🎨 Enhanced UI**: Skeleton loaders and smooth loading states
 
 ## 🚀 Features
 
-### 🔥 NEW Performance & Polish Features (v5.0)
-- **🎨 Modern Glassmorphism UI**: Beautiful frosted glass effects with smooth animations
-- **📱 Mobile-First PWA**: Installable app with offline support and touch gestures
-- **♿ WCAG AAA Accessibility**: Screen readers, keyboard navigation, voice commands
-- **⚡ Sub-100ms Performance**: Multi-layer caching, compression, and optimization
-- **🎯 Real-Time Monitoring**: Performance dashboards and alerting system
-- **🔍 3D Visualizations**: Interactive Three.js charts and WebGL renders
+### 🔥 Latest Live Data Features (v5.1)
+- **⚽ Live Battle Cards**: Real-time BPS, goal scorers, assists, captain tracking
+- **📊 Performance by Position**: GKP/DEF/MID/FWD breakdown with live updates
+- **🏆 Season Complete Mode**: "Season Complete" indicators for finished campaigns
+- **🌐 WebSocket Status**: Live connection monitoring with detailed diagnostics
+- **💾 Intelligent Caching**: Manager history (24h), live data (30s), analytics (5min)
+- **🎨 Enhanced Loading**: Component-specific skeleton loaders for better UX
 
 ### 🧠 Advanced Analytics & ML
 - **🤖 Predictive Match Simulator**: ML-enhanced H2H outcome predictions
@@ -25,11 +33,12 @@ The application is now **fully operational** with real FPL data integration and 
 - **🎯 Differential Analysis**: Identify key players that swing H2H battles
 
 ### 🏆 Core Features
-- **⚡ Live H2H Battle Tracking**: Real-time score updates with animations
-- **📋 League Table & Analytics**: Complete standings with performance insights
-- **📝 Report Generation**: Export detailed PDF/CSV/JSON battle reports
-- **🔄 Historical Analysis**: Browse any gameweek with comprehensive data
-- **🎮 Gaming Experience**: Smooth 60fps interactions and micro-animations
+- **⚡ Enhanced Live Battles**: BPS tracking, captain indicators, scoring player highlights
+- **📋 Fixed League Analytics**: Correct "Avg Points Against" calculation for H2H leagues
+- **🤖 Improved Predictions**: Form-based analysis with realistic confidence percentages
+- **📊 Live Match Tracker**: Real match data or "Season Complete" messaging
+- **🔄 Error Recovery**: Component-level retry without full page refresh
+- **🎮 Stable Performance**: No more crashes, graceful error handling
 
 ## 📱 Mobile Experience
 
@@ -249,6 +258,38 @@ npm run bundle-analyzer
 - **High Contrast Mode**: Enhanced visibility option
 - **Reduced Motion**: Respects accessibility preferences
 - **Custom Color Schemes**: Easily extensible theme system
+
+## 🔧 Technical Improvements (v5.1)
+
+### 🚫 Error Stability Fixes
+- **Component Error Boundaries**: Individual components fail gracefully without crashing the app
+- **WebSocket Error Handling**: Connection failures no longer cause app crashes
+- **3D Visualization Safety**: WebGL detection prevents crashes on unsupported browsers
+- **API Error Recovery**: Automatic retry with exponential backoff for failed requests
+- **Null Data Protection**: Comprehensive null checks prevent undefined access errors
+
+### ⚡ Performance Enhancements
+- **Intelligent Caching**: TTL-based cache with different durations per data type
+  - Manager data: 24 hours
+  - Live scores: 30 seconds
+  - League standings: 1 hour
+  - Analytics: 5 minutes
+- **Skeleton Loading**: Component-specific loading states instead of generic spinners
+- **Batch API Calls**: Multiple requests combined for efficiency
+- **Request Deduplication**: Prevent duplicate API calls through caching
+- **Abort Controllers**: Cancel requests on component unmount
+
+### 📊 Data Accuracy Fixes
+- **H2H Points Against**: Fixed calculation to sum opponent scores in H2H matches
+- **Prediction Confidence**: Realistic predictions based on recent form instead of "0%"
+- **Live Tracker Data**: Shows actual match data or "Season Complete" messaging
+- **Position Performance**: Calculated from actual squad picks with captaincy multipliers
+
+### 🌐 Real-Time Features
+- **WebSocket Status Monitor**: Live connection indicator with diagnostic details
+- **Live Battle Enhancements**: BPS tracking, goal scorers, captain identification
+- **Season Complete Mode**: Appropriate messaging when season has ended
+- **Connection Recovery**: Automatic reconnection with visual feedback
 
 ## 🐛 Troubleshooting
 

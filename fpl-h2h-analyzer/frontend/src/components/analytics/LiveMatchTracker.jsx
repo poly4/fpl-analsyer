@@ -45,11 +45,16 @@ import {
 } from '@mui/icons-material';
 import io from 'socket.io-client';
 
-function LiveMatchTracker({ data, manager1Id, manager2Id, gameweek }) {
+function LiveMatchTracker({ data, manager1Id, manager2Id, gameweek = 38 }) {
   const [liveData, setLiveData] = useState(null);
   const [isLive, setIsLive] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [socket, setSocket] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [matchData, setMatchData] = useState(null);
+  
+  // Check if season has ended
+  const isSeasonComplete = gameweek === 38;
 
   // Initialize WebSocket connection for live updates
   useEffect(() => {
@@ -76,7 +81,42 @@ function LiveMatchTracker({ data, manager1Id, manager2Id, gameweek }) {
     }
   }, [isLive, manager1Id, manager2Id]);
 
-  const liveTracking = data?.live_tracking || liveData;
+  // Fetch match data on mount or when managers change
+  useEffect(() => {
+    const fetchMatchData = async () => {
+      if (!manager1Id || !manager2Id) return;
+      
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/analytics/v2/live-match/${manager1Id}/${manager2Id}?gameweek=${gameweek}`
+        );
+        if (response.ok) {
+          const result = await response.json();
+          setMatchData(result);
+        }
+      } catch (error) {
+        console.error('Failed to fetch match data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchMatchData();
+  }, [manager1Id, manager2Id, gameweek]);
+
+  const liveTracking = data?.live_tracking || liveData || matchData;
+
+  if (loading) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <LinearProgress sx={{ width: '50%', mx: 'auto', mb: 2 }} />
+        <Typography variant="body2" color="textSecondary">
+          Loading match data...
+        </Typography>
+      </Box>
+    );
+  }
 
   if (!liveTracking) {
     return (
@@ -85,7 +125,9 @@ function LiveMatchTracker({ data, manager1Id, manager2Id, gameweek }) {
           No live tracking data available
         </Typography>
         <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-          Live tracking is only available during active gameweeks
+          {isSeasonComplete 
+            ? 'Season has ended. Showing final gameweek data.'
+            : 'Live tracking is only available during active gameweeks'}
         </Typography>
       </Box>
     );
@@ -93,10 +135,10 @@ function LiveMatchTracker({ data, manager1Id, manager2Id, gameweek }) {
 
   // Current scores and projections
   const currentScores = {
-    manager1: liveTracking.current_scores?.manager1 || 0,
-    manager2: liveTracking.current_scores?.manager2 || 0,
-    manager1_projected: liveTracking.projected_scores?.manager1 || 0,
-    manager2_projected: liveTracking.projected_scores?.manager2 || 0
+    manager1: liveTracking.current_scores?.manager1 || liveTracking.manager1_data?.total_points || 0,
+    manager2: liveTracking.current_scores?.manager2 || liveTracking.manager2_data?.total_points || 0,
+    manager1_projected: liveTracking.projected_scores?.manager1 || liveTracking.manager1_data?.projected_total || 0,
+    manager2_projected: liveTracking.projected_scores?.manager2 || liveTracking.manager2_data?.projected_total || 0
   };
 
   // Active players data
@@ -107,13 +149,50 @@ function LiveMatchTracker({ data, manager1Id, manager2Id, gameweek }) {
   // Live events
   const liveEvents = liveTracking.live_events || [];
 
-  // Performance by position
-  const positionPerformance = [
-    { position: 'GKP', manager1: liveTracking.position_scores?.manager1?.GKP || 0, manager2: liveTracking.position_scores?.manager2?.GKP || 0 },
-    { position: 'DEF', manager1: liveTracking.position_scores?.manager1?.DEF || 0, manager2: liveTracking.position_scores?.manager2?.DEF || 0 },
-    { position: 'MID', manager1: liveTracking.position_scores?.manager1?.MID || 0, manager2: liveTracking.position_scores?.manager2?.MID || 0 },
-    { position: 'FWD', manager1: liveTracking.position_scores?.manager1?.FWD || 0, manager2: liveTracking.position_scores?.manager2?.FWD || 0 }
-  ];
+  // Calculate performance by position from picks data
+  const calculatePositionScores = () => {
+    const positions = { GKP: 0, DEF: 0, MID: 0, FWD: 0 };
+    const m1Scores = { ...positions };
+    const m2Scores = { ...positions };
+    
+    if (liveTracking.manager1_data?.picks) {
+      liveTracking.manager1_data.picks.forEach(pick => {
+        if (pick.position <= 11 && pick.element_type) {
+          const posType = pick.element_type === 1 ? 'GKP' : 
+                         pick.element_type === 2 ? 'DEF' :
+                         pick.element_type === 3 ? 'MID' : 'FWD';
+          m1Scores[posType] += (pick.points || 0) * (pick.is_captain ? 2 : 1);
+        }
+      });
+    }
+    
+    if (liveTracking.manager2_data?.picks) {
+      liveTracking.manager2_data.picks.forEach(pick => {
+        if (pick.position <= 11 && pick.element_type) {
+          const posType = pick.element_type === 1 ? 'GKP' : 
+                         pick.element_type === 2 ? 'DEF' :
+                         pick.element_type === 3 ? 'MID' : 'FWD';
+          m2Scores[posType] += (pick.points || 0) * (pick.is_captain ? 2 : 1);
+        }
+      });
+    }
+    
+    return [
+      { position: 'GKP', manager1: m1Scores.GKP, manager2: m2Scores.GKP },
+      { position: 'DEF', manager1: m1Scores.DEF, manager2: m2Scores.DEF },
+      { position: 'MID', manager1: m1Scores.MID, manager2: m2Scores.MID },
+      { position: 'FWD', manager1: m1Scores.FWD, manager2: m2Scores.FWD }
+    ];
+  };
+  
+  const positionPerformance = liveTracking.position_scores 
+    ? [
+        { position: 'GKP', manager1: liveTracking.position_scores?.manager1?.GKP || 0, manager2: liveTracking.position_scores?.manager2?.GKP || 0 },
+        { position: 'DEF', manager1: liveTracking.position_scores?.manager1?.DEF || 0, manager2: liveTracking.position_scores?.manager2?.DEF || 0 },
+        { position: 'MID', manager1: liveTracking.position_scores?.manager1?.MID || 0, manager2: liveTracking.position_scores?.manager2?.MID || 0 },
+        { position: 'FWD', manager1: liveTracking.position_scores?.manager1?.FWD || 0, manager2: liveTracking.position_scores?.manager2?.FWD || 0 }
+      ]
+    : calculatePositionScores();
 
   // Captaincy performance
   const captaincyData = [
@@ -152,19 +231,23 @@ function LiveMatchTracker({ data, manager1Id, manager2Id, gameweek }) {
         <Paper sx={{ p: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <IconButton 
-                onClick={toggleLiveTracking}
-                color={isLive ? 'error' : 'success'}
-                size="large"
-              >
-                {isLive ? <Pause /> : <PlayArrow />}
-              </IconButton>
+              {!isSeasonComplete && (
+                <IconButton 
+                  onClick={toggleLiveTracking}
+                  color={isLive ? 'error' : 'success'}
+                  size="large"
+                >
+                  {isLive ? <Pause /> : <PlayArrow />}
+                </IconButton>
+              )}
               <Box>
                 <Typography variant="h6">
-                  Live Match Tracker
+                  {isSeasonComplete ? 'Final Match Data' : 'Live Match Tracker'}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  {isLive ? 'Live tracking active' : 'Click play to start live tracking'}
+                  {isSeasonComplete 
+                    ? 'Season Complete - Showing Final GW38 Data'
+                    : isLive ? 'Live tracking active' : 'Click play to start live tracking'}
                 </Typography>
               </Box>
             </Box>
@@ -173,8 +256,8 @@ function LiveMatchTracker({ data, manager1Id, manager2Id, gameweek }) {
                 Last updated: {lastUpdate.toLocaleTimeString()}
               </Typography>
               <Chip 
-                label={liveTracking.gameweek_status || 'Unknown'}
-                color={liveTracking.gameweek_status === 'Live' ? 'success' : 'default'}
+                label={isSeasonComplete ? `GW${gameweek} - Final` : (liveTracking.gameweek_status || `GW${gameweek}`)}
+                color={isSeasonComplete ? 'default' : liveTracking.gameweek_status === 'Live' ? 'success' : 'default'}
                 icon={<SportsSoccer />}
               />
             </Box>

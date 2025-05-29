@@ -29,7 +29,10 @@ import {
 import { TrendingUp, TrendingDown, Remove } from '@mui/icons-material';
 
 function DifferentialImpact({ data }) {
-  if (!data?.differential) {
+  // Check for both v1 and v2 API formats
+  const differentialData = data?.differential || data?.differential_analysis;
+  
+  if (!differentialData) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography variant="h6" color="textSecondary">
@@ -39,17 +42,43 @@ function DifferentialImpact({ data }) {
     );
   }
 
-  const { differential } = data;
+  const differential = differentialData;
   
-  // Prepare data for visualizations
-  const impactData = differential.top_differentials?.map(player => ({
-    name: player.web_name,
-    impact: player.differential_impact,
-    ownership: player.ownership_diff,
-    manager: player.owned_by === 'manager1' ? 'Manager 1' : 'Manager 2',
-    position: player.position,
-    form: player.form
-  })) || [];
+  // Prepare data for visualizations - handle v2 API structure
+  let impactData = [];
+  
+  if (differential.manager1_differentials && differential.manager2_differentials) {
+    // V2 API structure
+    const m1Diffs = differential.manager1_differentials.map(player => ({
+      name: player.name,
+      impact: player.impact_scores?.differential_impact || 0,
+      ownership: player.ownership?.overall || 0,
+      manager: 'Manager 1',
+      position: player.position,
+      form: player.performance?.form || 0
+    }));
+    
+    const m2Diffs = differential.manager2_differentials.map(player => ({
+      name: player.name,
+      impact: player.impact_scores?.differential_impact || 0,
+      ownership: player.ownership?.overall || 0,
+      manager: 'Manager 2',
+      position: player.position,
+      form: player.performance?.form || 0
+    }));
+    
+    impactData = [...m1Diffs, ...m2Diffs].sort((a, b) => b.impact - a.impact).slice(0, 10);
+  } else if (differential.top_differentials) {
+    // V1 API structure
+    impactData = differential.top_differentials.map(player => ({
+      name: player.web_name,
+      impact: player.differential_impact,
+      ownership: player.ownership_diff,
+      manager: player.owned_by === 'manager1' ? 'Manager 1' : 'Manager 2',
+      position: player.position,
+      form: player.form
+    }));
+  }
 
   const positionBreakdown = [
     { name: 'GKP', value: differential.position_breakdown?.GKP || 0, fill: '#8884d8' },
@@ -79,7 +108,7 @@ function DifferentialImpact({ data }) {
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="h4" color="primary">
-                {differential.high_impact_count || 0}
+                {differential.high_impact_count || impactData.filter(p => p.impact > 3).length || 0}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 High Impact Differentials
@@ -89,7 +118,7 @@ function DifferentialImpact({ data }) {
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="h4" color="secondary">
-                {differential.total_differential_value?.toFixed(1) || '0.0'}
+                {differential.total_differential_impact?.manager1 || differential.total_differential_value?.toFixed(1) || '0.0'}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 Total Expected Impact

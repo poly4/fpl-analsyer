@@ -55,14 +55,35 @@ function RateLimitMonitor() {
     try {
       const response = await fetch('/api/rate-limiter/metrics');
       if (!response.ok) {
-        throw new Error('Failed to fetch rate limit metrics');
+        if (response.status === 404) {
+          throw new Error('Rate limiter endpoint not found');
+        }
+        throw new Error(`Failed to fetch metrics: ${response.status}`);
       }
       const data = await response.json();
-      setMetrics(data);
-      setError(null);
+      
+      // Validate data structure to prevent crashes
+      if (data && typeof data === 'object') {
+        setMetrics({
+          available_tokens: data.available_tokens || 0,
+          token_capacity: data.token_capacity || 90,
+          requests_per_minute: data.requests_per_minute || 0,
+          average_wait_time: data.average_wait_time || 0,
+          successful_requests: data.successful_requests || 0,
+          rate_limited_requests: data.rate_limited_requests || 0,
+          failed_requests: data.failed_requests || 0,
+          success_rate: data.success_rate || 0,
+          consecutive_429s: data.consecutive_429s || 0,
+          ...data
+        });
+        setError(null);
+      } else {
+        throw new Error('Invalid metrics data received');
+      }
     } catch (err) {
       console.error('Error fetching rate limit metrics:', err);
       setError(err.message);
+      // Don't clear existing metrics on error
     } finally {
       setLoading(false);
     }
@@ -72,10 +93,18 @@ function RateLimitMonitor() {
     fetchMetrics();
     
     if (autoRefresh) {
-      const interval = setInterval(fetchMetrics, 2000); // Update every 2 seconds
+      // Use longer interval to prevent crashes
+      const interval = setInterval(fetchMetrics, 5000); // Update every 5 seconds instead of 2
       return () => clearInterval(interval);
     }
   }, [autoRefresh]);
+  
+  // Stop auto-refresh on component unmount
+  useEffect(() => {
+    return () => {
+      setAutoRefresh(false);
+    };
+  }, []);
 
   const getHealthColor = (metrics) => {
     if (!metrics) return 'default';
@@ -175,7 +204,7 @@ function RateLimitMonitor() {
                       Requests/min
                     </Typography>
                     <Typography variant="h6">
-                      {metrics.requests_per_minute.toFixed(1)}
+                      {(metrics.requests_per_minute || 0).toFixed(1)}
                     </Typography>
                   </Grid>
                   <Grid item xs={6}>
@@ -183,7 +212,7 @@ function RateLimitMonitor() {
                       Avg Wait Time
                     </Typography>
                     <Typography variant="h6">
-                      {metrics.average_wait_time.toFixed(2)}s
+                      {(metrics.average_wait_time || 0).toFixed(2)}s
                     </Typography>
                   </Grid>
                 </Grid>
@@ -238,8 +267,8 @@ function RateLimitMonitor() {
                     <Typography variant="body2" color="text.secondary">
                       Success Rate
                     </Typography>
-                    <Typography variant="h6" color={metrics.success_rate > 0.9 ? "success.main" : "warning.main"}>
-                      {(metrics.success_rate * 100).toFixed(1)}%
+                    <Typography variant="h6" color={(metrics.success_rate || 0) > 0.9 ? "success.main" : "warning.main"}>
+                      {((metrics.success_rate || 0) * 100).toFixed(1)}%
                     </Typography>
                   </Grid>
                 </Grid>

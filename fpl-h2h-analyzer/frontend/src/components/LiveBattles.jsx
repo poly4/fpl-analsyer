@@ -15,7 +15,7 @@ import {
 import RefreshIcon from '@mui/icons-material/Refresh';
 import WifiIcon from '@mui/icons-material/Wifi';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
-import EnhancedBattleCard from './EnhancedBattleCard';
+import LiveBattleCard from './LiveBattleCard';
 import { fplApi } from '../services/api';
 import websocketService, { MessageTypes } from '../services/websocket';
 
@@ -42,47 +42,71 @@ function LiveBattles({ leagueId }) {
 
       // Get current gameweek if not already set
       if (!currentGameweek) {
-        const gwData = await fplApi.getCurrentGameweek();
-        setCurrentGameweek(gwData.gameweek);
-        if (!selectedGameweek) {
-          setSelectedGameweek(gwData.gameweek);
+        try {
+          const gwData = await fplApi.getCurrentGameweek();
+          setCurrentGameweek(gwData.gameweek);
+          if (!selectedGameweek) {
+            setSelectedGameweek(gwData.gameweek);
+          }
+        } catch (gwError) {
+          console.error('Failed to get current gameweek:', gwError);
+          // Default to GW38 if current gameweek fails
+          setCurrentGameweek(38);
+          setSelectedGameweek(38);
         }
       }
 
       // Get live battles for specific gameweek
-      const targetGameweek = gameweek || selectedGameweek;
-      const url = targetGameweek ? 
-        `http://localhost:8000/api/h2h/live-battles/${leagueId}?gameweek=${targetGameweek}` :
-        `http://localhost:8000/api/h2h/live-battles/${leagueId}`;
+      const targetGameweek = gameweek || selectedGameweek || currentGameweek || 38;
+      const url = `http://localhost:8000/api/h2h/live-battles/${leagueId}?gameweek=${targetGameweek}`;
       
       const response = await fetch(url);
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`No battles found for gameweek ${targetGameweek}`);
+        } else if (response.status === 500) {
+          throw new Error('Server error. Please try again later.');
+        }
         throw new Error(`Failed to fetch battles: ${response.status}`);
       }
       const battlesData = await response.json();
       
-      // Transform data for BattleCard component
-      const transformedBattles = battlesData.battles.map(battle => ({
-        id: battle.match_id,
-        manager1: battle.manager1.player_name,
-        team1: battle.manager1.name,
-        score1: battle.manager1.score,
-        chip1: battle.manager1.chip,
-        manager2: battle.manager2.player_name,
-        team2: battle.manager2.name,
-        score2: battle.manager2.score,
-        chip2: battle.manager2.chip,
-        completed: battle.completed,
-        error: battle.error,
-        manager1_id: battle.manager1.id,
-        manager2_id: battle.manager2.id
-      }));
+      // Validate and transform data safely
+      if (!battlesData || !battlesData.battles || !Array.isArray(battlesData.battles)) {
+        console.warn('Invalid battles data received:', battlesData);
+        setBattles([]);
+        return;
+      }
+      
+      const transformedBattles = battlesData.battles.map(battle => {
+        try {
+          return {
+            id: battle.match_id || `${battle.manager1?.id}-${battle.manager2?.id}`,
+            manager1: battle.manager1?.player_name || 'Unknown',
+            team1: battle.manager1?.name || 'Unknown Team',
+            score1: battle.manager1?.score || 0,
+            chip1: battle.manager1?.chip || null,
+            manager2: battle.manager2?.player_name || 'Unknown',
+            team2: battle.manager2?.name || 'Unknown Team',
+            score2: battle.manager2?.score || 0,
+            chip2: battle.manager2?.chip || null,
+            completed: battle.completed || false,
+            error: battle.error || null,
+            manager1_id: battle.manager1?.id,
+            manager2_id: battle.manager2?.id
+          };
+        } catch (transformError) {
+          console.error('Error transforming battle:', transformError, battle);
+          return null;
+        }
+      }).filter(Boolean); // Remove any null entries
 
       setBattles(transformedBattles);
       setLastUpdate(new Date());
     } catch (err) {
       console.error('Error fetching battles:', err);
       setError(err.message || 'Failed to load battles');
+      setBattles([]); // Set empty battles to prevent undefined errors
     } finally {
       setLoading(false);
     }
@@ -164,19 +188,34 @@ function LiveBattles({ leagueId }) {
   useEffect(() => {
     fetchBattles();
 
-    // Set up WebSocket connection handlers
-    websocketService.setConnectionChangeCallback(setIsConnected);
-    
-    // Add message handlers for real-time updates
-    websocketService.addMessageHandler(MessageTypes.H2H_UPDATE, handleH2HUpdate);
-    websocketService.addMessageHandler(MessageTypes.LIVE_SCORES, handleLiveScoreUpdate);
-    websocketService.addMessageHandler(MessageTypes.LEAGUE_UPDATE, handleLeagueUpdate);
+    try {
+      // Set up WebSocket connection handlers with error handling
+      if (websocketService && websocketService.setConnectionChangeCallback) {
+        websocketService.setConnectionChangeCallback(setIsConnected);
+      }
+      
+      // Add message handlers for real-time updates
+      if (websocketService && MessageTypes) {
+        websocketService.addMessageHandler(MessageTypes.H2H_UPDATE, handleH2HUpdate);
+        websocketService.addMessageHandler(MessageTypes.LIVE_SCORES, handleLiveScoreUpdate);
+        websocketService.addMessageHandler(MessageTypes.LEAGUE_UPDATE, handleLeagueUpdate);
+      }
+    } catch (wsError) {
+      console.error('WebSocket setup error:', wsError);
+      // Continue without WebSocket - app should still work
+    }
     
     return () => {
-      // Clean up message handlers
-      websocketService.removeMessageHandler(MessageTypes.H2H_UPDATE, handleH2HUpdate);
-      websocketService.removeMessageHandler(MessageTypes.LIVE_SCORES, handleLiveScoreUpdate);
-      websocketService.removeMessageHandler(MessageTypes.LEAGUE_UPDATE, handleLeagueUpdate);
+      try {
+        // Clean up message handlers
+        if (websocketService && MessageTypes) {
+          websocketService.removeMessageHandler(MessageTypes.H2H_UPDATE, handleH2HUpdate);
+          websocketService.removeMessageHandler(MessageTypes.LIVE_SCORES, handleLiveScoreUpdate);
+          websocketService.removeMessageHandler(MessageTypes.LEAGUE_UPDATE, handleLeagueUpdate);
+        }
+      } catch (cleanupError) {
+        console.error('WebSocket cleanup error:', cleanupError);
+      }
     };
   }, [handleH2HUpdate, handleLiveScoreUpdate, handleLeagueUpdate]);
 
@@ -282,7 +321,10 @@ function LiveBattles({ leagueId }) {
       <Grid container spacing={2}>
         {battles.map(battle => (
           <Grid item xs={12} sm={6} md={4} key={battle.id}>
-            <EnhancedBattleCard battle={battle} />
+            <LiveBattleCard 
+              battle={battle}
+              gameweek={selectedGameweek || currentGameweek || 38}
+            />
           </Grid>
         ))}
       </Grid>

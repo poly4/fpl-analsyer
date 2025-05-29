@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -6,7 +6,6 @@ import {
   Paper,
   Card,
   CardContent,
-  Calendar,
   List,
   ListItem,
   ListItemText,
@@ -63,11 +62,61 @@ import {
   Warning
 } from '@mui/icons-material';
 
-function ChipStrategy({ data }) {
+function ChipStrategy({ data, manager1Id, manager2Id }) {
   const [selectedChip, setSelectedChip] = useState('all');
   const [viewMode, setViewMode] = useState('calendar');
+  const [chipData, setChipData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  if (!data?.chip_strategy) {
+  // Fetch chip strategy data
+  useEffect(() => {
+    const fetchChipData = async () => {
+      if (!manager1Id) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`/api/analytics/chip-strategy/${manager1Id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch chip strategy');
+        }
+        const result = await response.json();
+        setChipData(result);
+      } catch (err) {
+        console.error('Error fetching chip data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchChipData();
+  }, [manager1Id]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <LinearProgress sx={{ width: '50%' }} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography variant="h6" color="error">
+          Error: {error}
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Try to use chip data from comprehensive analytics or dedicated endpoint
+  const chip_strategy = data?.chip_strategy || chipData;
+  
+  if (!chip_strategy) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography variant="h6" color="textSecondary">
@@ -76,8 +125,6 @@ function ChipStrategy({ data }) {
       </Box>
     );
   }
-
-  const { chip_strategy } = data;
 
   // Chip usage data
   const chipUsage = [

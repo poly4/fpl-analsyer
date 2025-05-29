@@ -99,6 +99,147 @@ export const ChartSkeleton = ({ width = '100%', height = 300 }) => (
   />
 );
 
+// H2H Comparison Skeleton
+export const H2HComparisonSkeleton = () => (
+  <Box>
+    <Grid container spacing={3}>
+      {/* Manager selection */}
+      <Grid item xs={12}>
+        <Paper sx={{ p: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={5}>
+              <Skeleton variant="rectangular" height={56} />
+            </Grid>
+            <Grid item xs={12} md={2} sx={{ textAlign: 'center' }}>
+              <Skeleton variant="text" width="60%" sx={{ mx: 'auto' }} />
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Skeleton variant="rectangular" height={56} />
+            </Grid>
+          </Grid>
+        </Paper>
+      </Grid>
+      
+      {/* Score comparison */}
+      <Grid item xs={12}>
+        <Paper sx={{ p: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={5}>
+              <Skeleton variant="text" width="60%" height={40} sx={{ mx: 'auto' }} />
+              <Skeleton variant="text" width="40%" sx={{ mx: 'auto' }} />
+              <Skeleton variant="circular" width={120} height={120} sx={{ mx: 'auto', mt: 2 }} />
+            </Grid>
+            <Grid item xs={2}>
+              <Skeleton variant="text" width="80%" height={60} sx={{ mx: 'auto', mt: 5 }} />
+            </Grid>
+            <Grid item xs={5}>
+              <Skeleton variant="text" width="60%" height={40} sx={{ mx: 'auto' }} />
+              <Skeleton variant="text" width="40%" sx={{ mx: 'auto' }} />
+              <Skeleton variant="circular" width={120} height={120} sx={{ mx: 'auto', mt: 2 }} />
+            </Grid>
+          </Grid>
+        </Paper>
+      </Grid>
+      
+      {/* Squad comparison */}
+      <Grid item xs={12}>
+        <Paper sx={{ p: 3 }}>
+          <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              {[...Array(5)].map((_, i) => (
+                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                  <Skeleton variant="circular" width={40} height={40} />
+                  <Skeleton variant="text" width="60%" />
+                </Box>
+              ))}
+            </Grid>
+            <Grid item xs={6}>
+              {[...Array(5)].map((_, i) => (
+                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                  <Skeleton variant="circular" width={40} height={40} />
+                  <Skeleton variant="text" width="60%" />
+                </Box>
+              ))}
+            </Grid>
+          </Grid>
+        </Paper>
+      </Grid>
+    </Grid>
+  </Box>
+);
+
+// Live Battle Skeleton
+export const LiveBattleSkeleton = () => (
+  <Card>
+    <CardContent>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Skeleton variant="rounded" width={80} height={24} />
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Skeleton variant="circular" width={24} height={24} />
+          <Skeleton variant="circular" width={24} height={24} />
+        </Box>
+      </Box>
+      
+      <Grid container spacing={2} alignItems="center">
+        <Grid item xs={5}>
+          <Stack alignItems="center" spacing={1}>
+            <Skeleton variant="text" width="80%" />
+            <Skeleton variant="text" width="60%" />
+            <Skeleton variant="text" width={80} height={60} />
+            <Skeleton variant="rounded" width={100} height={20} />
+          </Stack>
+        </Grid>
+        <Grid item xs={2}>
+          <Skeleton variant="text" width="100%" sx={{ textAlign: 'center' }} />
+        </Grid>
+        <Grid item xs={5}>
+          <Stack alignItems="center" spacing={1}>
+            <Skeleton variant="text" width="80%" />
+            <Skeleton variant="text" width="60%" />
+            <Skeleton variant="text" width={80} height={60} />
+            <Skeleton variant="rounded" width={100} height={20} />
+          </Stack>
+        </Grid>
+      </Grid>
+    </CardContent>
+  </Card>
+);
+
+// Analytics Card Skeleton
+export const AnalyticsCardSkeleton = () => (
+  <Card>
+    <CardContent>
+      <Stack spacing={2}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Skeleton variant="circular" width={24} height={24} />
+          <Skeleton variant="text" width="60%" />
+        </Box>
+        <Skeleton variant="text" width="30%" height={48} />
+        <Skeleton variant="text" width="80%" />
+        <Skeleton variant="rectangular" height={200} />
+      </Stack>
+    </CardContent>
+  </Card>
+);
+
+// Stats Grid Skeleton
+export const StatsGridSkeleton = () => (
+  <Grid container spacing={2}>
+    {[...Array(4)].map((_, i) => (
+      <Grid item xs={12} sm={6} md={3} key={i}>
+        <Card>
+          <CardContent sx={{ textAlign: 'center' }}>
+            <Skeleton variant="text" width="60%" sx={{ mx: 'auto' }} />
+            <Skeleton variant="text" width="40%" height={48} sx={{ mx: 'auto' }} />
+            <Skeleton variant="text" width="80%" sx={{ mx: 'auto' }} />
+          </CardContent>
+        </Card>
+      </Grid>
+    ))}
+  </Grid>
+);
+
 // Analytics Dashboard Skeleton
 export const AnalyticsDashboardSkeleton = () => (
   <Grid container spacing={3}>
@@ -245,19 +386,23 @@ export const TabPanelSkeleton = () => (
   </Box>
 );
 
-// Stats Grid Skeleton
-export const StatsGridSkeleton = () => (
-  <Grid container spacing={2}>
-    {[...Array(6)].map((_, index) => (
-      <Grid item xs={6} sm={4} md={2} key={index}>
-        <Box sx={{ textAlign: 'center', p: 2 }}>
-          <Skeleton variant="circular" width={60} height={60} sx={{ mx: 'auto', mb: 1 }} />
-          <Skeleton variant="text" width="80%" sx={{ mx: 'auto' }} />
-          <Skeleton variant="text" width="60%" height={24} sx={{ mx: 'auto' }} />
-        </Box>
+// Page Skeleton for lazy loading
+export const PageSkeleton = () => (
+  <Box sx={{ p: 3 }}>
+    <Skeleton variant="text" width="40%" height={40} sx={{ mb: 3 }} />
+    <Stack spacing={3}>
+      <Skeleton variant="rectangular" height={100} />
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <Skeleton variant="rectangular" height={300} />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Skeleton variant="rectangular" height={300} />
+        </Grid>
       </Grid>
-    ))}
-  </Grid>
+      <Skeleton variant="rectangular" height={200} />
+    </Stack>
+  </Box>
 );
 
 export default {
@@ -271,5 +416,6 @@ export default {
   ComparisonViewSkeleton,
   ListSkeleton,
   TabPanelSkeleton,
-  StatsGridSkeleton
+  StatsGridSkeleton,
+  PageSkeleton
 };

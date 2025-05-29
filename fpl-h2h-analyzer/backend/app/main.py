@@ -823,19 +823,45 @@ async def get_league_overview(league_id: int):
         # Get current gameweek
         current_gw = await live_data_service.get_current_gameweek()
         
-        # Return the full standings data structure that frontend expects
-        # Plus additional computed fields
-        total_managers = len(standings_data.get("standings", {}).get("results", []))
+        # Get all H2H matches to calculate points_against correctly
+        all_matches = await live_data_service.get_h2h_matches(league_id)
+        
+        # Calculate points_against for each manager
+        points_against_map = {}
+        for match in all_matches:
+            # For each match, add opponent's score to points_against
+            if match.get('entry_1_entry') and match.get('entry_2_entry'):
+                entry_1_id = match['entry_1_entry']
+                entry_2_id = match['entry_2_entry']
+                entry_1_points = match.get('entry_1_points', 0) or 0
+                entry_2_points = match.get('entry_2_points', 0) or 0
+                
+                # Add opponent's points to each manager's points_against
+                points_against_map[entry_1_id] = points_against_map.get(entry_1_id, 0) + entry_2_points
+                points_against_map[entry_2_id] = points_against_map.get(entry_2_id, 0) + entry_1_points
+        
+        # Update standings with correct points_against
         standings_results = standings_data.get("standings", {}).get("results", [])
-        total_points = sum(m.get("points_for", 0) for m in standings_results)
-        avg_points = total_points / max(total_managers, 1)
+        for standing in standings_results:
+            entry_id = standing.get('entry')
+            if entry_id in points_against_map:
+                standing['points_against'] = points_against_map[entry_id]
+        
+        # Calculate analytics
+        total_managers = len(standings_results)
+        total_points_for = sum(m.get("points_for", 0) for m in standings_results)
+        total_points_against = sum(m.get("points_against", 0) for m in standings_results)
+        avg_points_for = total_points_for / max(total_managers, 1)
+        avg_points_against = total_points_against / max(total_managers, 1)
         
         return {
             "league_id": league_id,
             "current_gameweek": current_gw,
             "total_managers": total_managers,
-            "average_points": round(avg_points, 1),
-            "standings": standings_data,  # Include the full standings structure
+            "average_points": round(avg_points_for, 1),
+            "average_points_for": round(avg_points_for, 1),
+            "average_points_against": round(avg_points_against, 1),
+            "standings": standings_data,  # Include the full standings structure with updated points_against
             "last_updated": standings_data.get("last_updated_data", None)
         }
     except Exception as e:
@@ -1065,18 +1091,75 @@ async def get_h2h_prediction(
         # Generate prediction using predict_match_outcome
         manager1_history = await live_data_service.get_manager_history(manager1_id)
         manager2_history = await live_data_service.get_manager_history(manager2_id)
-        fixtures = await live_data_service.get_fixtures()
+        fixtures = await live_data_service.get_fixtures(gameweek)
         
-        prediction = await enhanced_h2h_analyzer.predictive_engine.predict_match_outcome(
-            manager1_id,
-            manager2_id,
-            manager1_history,
-            manager2_history,
-            manager1_picks,
-            manager2_picks,
-            fixtures,
-            gameweek
-        )
+        # If predictive engine fails, return basic prediction based on form
+        try:
+            prediction = await enhanced_h2h_analyzer.predictive_engine.predict_match_outcome(
+                manager1_id,
+                manager2_id,
+                manager1_history,
+                manager2_history,
+                manager1_picks,
+                manager2_picks,
+                fixtures,
+                gameweek
+            )
+        except Exception as pred_error:
+            logger.warning(f"Predictive engine failed, using basic prediction: {pred_error}")
+            
+            # Calculate basic prediction based on recent form
+            m1_recent_scores = []
+            m2_recent_scores = []
+            
+            if manager1_history and 'current' in manager1_history:
+                m1_recent_scores = [gw.get('points', 0) for gw in manager1_history['current'][-5:]]
+            if manager2_history and 'current' in manager2_history:
+                m2_recent_scores = [gw.get('points', 0) for gw in manager2_history['current'][-5:]]
+            
+            m1_avg = sum(m1_recent_scores) / max(len(m1_recent_scores), 1)
+            m2_avg = sum(m2_recent_scores) / max(len(m2_recent_scores), 1)
+            
+            # Calculate simple probabilities based on average scores
+            score_diff = m1_avg - m2_avg
+            total_avg = m1_avg + m2_avg
+            
+            if total_avg > 0:
+                # Normalize difference to probability
+                advantage = abs(score_diff) / total_avg
+                base_prob = 0.5 + min(advantage * 0.3, 0.35)  # Cap at 85% probability
+                
+                if score_diff > 5:  # Manager 1 favored
+                    prob_m1 = base_prob
+                    prob_m2 = (1 - base_prob) * 0.7
+                    prob_draw = 1 - prob_m1 - prob_m2
+                elif score_diff < -5:  # Manager 2 favored
+                    prob_m2 = base_prob
+                    prob_m1 = (1 - base_prob) * 0.7
+                    prob_draw = 1 - prob_m1 - prob_m2
+                else:  # Close match
+                    prob_draw = 0.25
+                    prob_m1 = (1 - prob_draw) * (0.5 + score_diff / 20)
+                    prob_m2 = 1 - prob_m1 - prob_draw
+            else:
+                prob_m1 = prob_m2 = 0.4
+                prob_draw = 0.2
+            
+            prediction = {
+                'manager1_win_probability': max(0, min(1, prob_m1)),
+                'manager2_win_probability': max(0, min(1, prob_m2)),
+                'draw_probability': max(0, min(1, prob_draw)),
+                'confidence': 0.65,  # Lower confidence for basic prediction
+                'expected_margin': score_diff,
+                'manager1_expected_points': m1_avg,
+                'manager2_expected_points': m2_avg,
+                'prediction_method': 'basic_form_analysis',
+                'key_factors': [
+                    f"Manager 1 avg last 5 GWs: {m1_avg:.1f}",
+                    f"Manager 2 avg last 5 GWs: {m2_avg:.1f}",
+                    f"Expected margin: {abs(score_diff):.1f} points"
+                ]
+            }
         
         return prediction
     except Exception as e:

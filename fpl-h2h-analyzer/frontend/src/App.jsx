@@ -11,9 +11,11 @@ console.log('🏠 Base URL:', import.meta.env.VITE_API_URL || '/api');
 // Import providers that are known to work
 import AccessibilityProvider from './components/AccessibilityProvider';
 import PerformanceMonitor from './components/PerformanceMonitor';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Import navigation components
 import MobileNavigation from './components/MobileNavigation';
+import WebSocketStatus from './components/WebSocketStatus';
 
 // Import loading components
 import { PageSkeleton } from './components/Skeletons';
@@ -73,59 +75,14 @@ const PageLoader = () => (
   </Box>
 );
 
-// Error Boundary Component
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error('App Error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '100vh',
-            p: 3,
-            textAlign: 'center',
-          }}
-        >
-          <Typography variant="h4" gutterBottom>Oops! Something went wrong</Typography>
-          <Typography variant="body1" gutterBottom>
-            We're sorry for the inconvenience. Please try refreshing the page.
-          </Typography>
-          <button 
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '10px 20px',
-              marginTop: '20px',
-              backgroundColor: '#6200EE',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }}
-          >
-            Refresh Page
-          </button>
-        </Box>
-      );
-    }
-    return this.props.children;
-  }
-}
+// Component-specific error boundary wrapper
+const ComponentErrorBoundary = ({ children, name }) => {
+  return (
+    <ErrorBoundary>
+      {children}
+    </ErrorBoundary>
+  );
+};
 
 // Tab Panel Component
 const TabPanel = ({ children, value, index, ...other }) => (
@@ -190,6 +147,9 @@ function App() {
                   <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                     🏆 FPL H2H Analyzer Pro
                   </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <WebSocketStatus />
+                  </Box>
                 </Toolbar>
                 
                 {/* Desktop Navigation */}
@@ -219,30 +179,38 @@ function App() {
               >
                 {/* Dashboard Tab */}
                 <TabPanel value={currentPage} index={0}>
-                  <Suspense fallback={<PageLoader />}>
-                    <Dashboard />
-                  </Suspense>
+                  <ComponentErrorBoundary name="Dashboard">
+                    <Suspense fallback={<PageLoader />}>
+                      <Dashboard />
+                    </Suspense>
+                  </ComponentErrorBoundary>
                 </TabPanel>
 
                 {/* Live H2H Battle Tab */}
                 <TabPanel value={currentPage} index={1}>
-                  <Suspense fallback={<PageLoader />}>
-                    <LiveH2HBattle />
-                  </Suspense>
+                  <ComponentErrorBoundary name="LiveH2HBattle">
+                    <Suspense fallback={<PageLoader />}>
+                      <LiveH2HBattle />
+                    </Suspense>
+                  </ComponentErrorBoundary>
                 </TabPanel>
 
                 {/* Analytics Dashboard Tab */}
                 <TabPanel value={currentPage} index={2}>
-                  <Suspense fallback={<PageLoader />}>
-                    <AnalyticsDashboard />
-                  </Suspense>
+                  <ComponentErrorBoundary name="AnalyticsDashboard">
+                    <Suspense fallback={<PageLoader />}>
+                      <AnalyticsDashboard />
+                    </Suspense>
+                  </ComponentErrorBoundary>
                 </TabPanel>
 
                 {/* Predictive Simulator Tab */}
                 <TabPanel value={currentPage} index={3}>
-                  <Suspense fallback={<PageLoader />}>
-                    <PredictiveSimulator />
-                  </Suspense>
+                  <ComponentErrorBoundary name="PredictiveSimulator">
+                    <Suspense fallback={<PageLoader />}>
+                      <PredictiveSimulator />
+                    </Suspense>
+                  </ComponentErrorBoundary>
                 </TabPanel>
 
                 {/* Service Worker Manager (invisible) */}

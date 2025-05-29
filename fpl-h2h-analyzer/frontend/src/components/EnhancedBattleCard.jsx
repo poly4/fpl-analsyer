@@ -32,20 +32,40 @@ function EnhancedBattleCard({ battle }) {
   const scoreColor2 = battle.score2 > battle.score1 ? 'success.main' : battle.score2 < battle.score1 ? 'error.main' : 'warning.main';
 
   const handleViewDetails = () => {
-    navigate(`/battle/${battle.manager1_id}/${battle.manager2_id}`);
+    try {
+      if (battle.manager1_id && battle.manager2_id) {
+        navigate(`/battle/${battle.manager1_id}/${battle.manager2_id}`);
+      } else {
+        console.error('Cannot navigate: missing manager IDs');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
   
   const fetchAnalytics = async () => {
     if (analytics || loadingAnalytics) return;
+    
+    if (!battle.manager1_id || !battle.manager2_id) {
+      console.error('Missing manager IDs for analytics');
+      return;
+    }
     
     setLoadingAnalytics(true);
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/analytics/h2h/comprehensive/${battle.manager1_id}/${battle.manager2_id}`
       );
-      setAnalytics(response.data);
+      
+      if (response.data) {
+        setAnalytics(response.data);
+      } else {
+        console.warn('No analytics data received');
+      }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
+      // Don't crash - just show no analytics
+      setAnalytics(null);
     } finally {
       setLoadingAnalytics(false);
     }
@@ -91,9 +111,10 @@ function EnhancedBattleCard({ battle }) {
   const renderAnalyticsInsight = () => {
     if (!analytics) return null;
     
-    const { differential_analysis, prediction, chip_strategies } = analytics;
-    const winProb1 = Math.round(prediction.manager1_win_probability * 100);
-    const winProb2 = Math.round(prediction.manager2_win_probability * 100);
+    try {
+      const { differential_analysis, prediction, chip_strategies } = analytics;
+      const winProb1 = prediction?.manager1_win_probability ? Math.round(prediction.manager1_win_probability * 100) : 50;
+      const winProb2 = prediction?.manager2_win_probability ? Math.round(prediction.manager2_win_probability * 100) : 50;
     
     return (
       <Box mt={2}>
