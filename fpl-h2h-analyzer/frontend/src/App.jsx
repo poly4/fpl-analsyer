@@ -1,16 +1,80 @@
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Box, AppBar, Toolbar, Typography, Tabs, Tab, useMediaQuery, alpha } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { CssBaseline, Box, AppBar, Toolbar, Typography, Tabs, Tab, useMediaQuery } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Import our modern design system
-import { createModernTheme, glassMixins, animations } from './styles/themes';
 
 // Debug logging
 console.log('🚀 Full FPL H2H Analyzer loading...');
 console.log('📍 Window location:', window.location.href);
 console.log('🏠 Base URL:', import.meta.env.VITE_API_URL || '/api');
+
+// Create a proper Material-UI dark theme with all required color properties
+const createModernTheme = () => createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#667eea',
+      light: '#9aa7ff',
+      dark: '#3f51b5',
+      contrastText: '#ffffff',
+    },
+    secondary: {
+      main: '#f093fb',
+      light: '#ff6bcf',
+      dark: '#c762c8',
+      contrastText: '#ffffff',
+    },
+    background: {
+      default: '#0a0a0f',
+      paper: '#1a1a2e',
+    },
+    text: {
+      primary: 'rgba(255, 255, 255, 0.95)',
+      secondary: 'rgba(255, 255, 255, 0.75)',
+      disabled: 'rgba(255, 255, 255, 0.4)',
+    },
+    error: {
+      main: '#ff4757',
+      light: '#ff6b7a',
+      dark: '#cc3a47',
+      contrastText: '#ffffff',
+    },
+    warning: {
+      main: '#ffd93d',
+      light: '#ffe066',
+      dark: '#ccad31',
+      contrastText: '#000000',
+    },
+    info: {
+      main: '#3742fa',
+      light: '#5a67fb',
+      dark: '#2c35c8',
+      contrastText: '#ffffff',
+    },
+    success: {
+      main: '#00ff88',
+      light: '#33ff9f',
+      dark: '#00cc6d',
+      contrastText: '#000000',
+    },
+    divider: 'rgba(255, 255, 255, 0.1)',
+    action: {
+      active: 'rgba(255, 255, 255, 0.56)',
+      hover: 'rgba(255, 255, 255, 0.04)',
+      selected: 'rgba(255, 255, 255, 0.08)',
+      disabled: 'rgba(255, 255, 255, 0.26)',
+      disabledBackground: 'rgba(255, 255, 255, 0.12)',
+      focus: 'rgba(255, 255, 255, 0.12)'
+    }
+  },
+  typography: {
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    h5: {
+      fontWeight: 700,
+    }
+  },
+});
 
 // Import providers that are known to work
 import AccessibilityProvider from './components/AccessibilityProvider';
@@ -147,7 +211,7 @@ function App() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const theme = createModernTheme(darkMode ? 'dark' : 'light');
+  const theme = createModernTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Handle page change
@@ -184,7 +248,6 @@ function App() {
                   position="static" 
                   elevation={0}
                   sx={{
-                    ...glassMixins.glass,
                     background: 'rgba(255, 255, 255, 0.03)',
                     backdropFilter: 'blur(30px)',
                     WebkitBackdropFilter: 'blur(30px)',
@@ -193,7 +256,6 @@ function App() {
                     boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
                     '&:hover': {
                       background: 'rgba(255, 255, 255, 0.05)',
-                      transform: 'none', // Override hover transform for header
                     }
                   }}
                 >
@@ -261,7 +323,11 @@ function App() {
                               display: 'none', // Hide default indicator
                             },
                             '& .MuiTab-root': {
-                              ...glassMixins.glassNav,
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              backdropFilter: 'blur(10px)',
+                              WebkitBackdropFilter: 'blur(10px)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '20px',
                               minHeight: 40,
                               minWidth: 120,
                               margin: '0 6px',

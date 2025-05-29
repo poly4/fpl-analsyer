@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App from './App.fixed.jsx';
+import App from './App.jsx';
 
 console.log('🔥 Main entry point loading...');
 console.log('🎯 Root element:', document.getElementById('root'));
