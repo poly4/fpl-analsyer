@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useH2HBattle } from '../hooks/useWebSocket';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function LiveBattleCard({ battle, gameweek = 38 }) {
   const navigate = useNavigate();

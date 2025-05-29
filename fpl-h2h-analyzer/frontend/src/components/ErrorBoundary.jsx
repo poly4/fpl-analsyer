@@ -129,7 +129,7 @@ class ErrorBoundary extends React.Component {
               </Button>
             </Box>
             
-            {process.env.NODE_ENV === 'development' && errorInfo && (
+            {import.meta.env.MODE === 'development' && errorInfo && (
               <details style={{ marginTop: '20px', textAlign: 'left' }}>
                 <summary style={{ cursor: 'pointer' }}>Error Details (Dev Only)</summary>
                 <pre style={{ 

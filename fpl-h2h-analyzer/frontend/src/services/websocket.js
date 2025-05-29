@@ -36,7 +36,7 @@ class WebSocketService {
         // Determine WebSocket URL based on environment
         let wsUrl;
         
-        if (process.env.NODE_ENV === 'development' && window.location.port === '5173') {
+        if (import.meta.env.MODE === 'development' && window.location.port === '5173') {
           // Vite dev server - connect directly to backend
           wsUrl = 'ws://localhost:8000/ws/connect';
         } else if (window.location.hostname === 'localhost' && window.location.port === '3000') {

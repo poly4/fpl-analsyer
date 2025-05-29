@@ -315,7 +315,7 @@ export default function LiveH2HBattle({ battle, gameweek, viewerId }) {
 
   useEffect(() => {
     // Connect to WebSocket
-    const ws = io(process.env.REACT_APP_WS_URL || 'ws://localhost:8000', {
+    const ws = io(import.meta.env.VITE_WS_URL || 'ws://localhost:8000', {
       transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
