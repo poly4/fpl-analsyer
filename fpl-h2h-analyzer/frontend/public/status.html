@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPL H2H Analyzer - Status</title>
+    <style>
+        body {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .status-success {
+            color: #00ff88;
+            font-weight: 600;
+        }
+        
+        .status-error {
+            color: #ff4757;
+            font-weight: 600;
+        }
+        
+        .big-button {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        
+        .big-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
+        }
+        
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="gradient-text">🏆 FPL H2H Analyzer Pro</h1>
+        
+        <div class="glass-card">
+            <h2>✅ Server Status: <span class="status-success">RUNNING</span></h2>
+            <p>The development server is successfully running on port 5173.</p>
+            
+            <h3>🎯 Correct URL:</h3>
+            <p><strong><code>http://localhost:5173/</code></strong></p>
+            
+            <h3>❌ Common Mistakes:</h3>
+            <ul>
+                <li><code>http://localhost:3000/</code> ← Wrong port (Create React App default)</li>
+                <li><code>http://localhost:8000/</code> ← Wrong port (Backend API)</li>
+            </ul>
+        </div>
+        
+        <div class="glass-card">
+            <h3>🚀 Expected Modern Features:</h3>
+            <ul>
+                <li>✅ Dark gradient background (like this page)</li>
+                <li>✅ Glassmorphic components with blur effects</li>
+                <li>✅ Gradient text headers</li>
+                <li>✅ Inter font family</li>
+                <li>✅ Smooth hover animations</li>
+                <li>✅ Modern tab navigation</li>
+            </ul>
+        </div>
+        
+        <div class="glass-card">
+            <h3>🔧 Troubleshooting Steps:</h3>
+            <ol>
+                <li><strong>Use the correct URL:</strong> <code>http://localhost:5173/</code></li>
+                <li><strong>Hard refresh:</strong> Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)</li>
+                <li><strong>Clear browser cache</strong> and cookies for localhost</li>
+                <li><strong>Try incognito mode</strong> to bypass cache</li>
+                <li><strong>Check browser console</strong> (F12) for JavaScript errors</li>
+            </ol>
+        </div>
+        
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="/" class="big-button">🎯 Go to Main App</a>
+            <a href="#" onclick="location.reload()" class="big-button">🔄 Refresh This Page</a>
+        </div>
+        
+        <div class="glass-card">
+            <h3>📊 Technical Details:</h3>
+            <ul>
+                <li><strong>Framework:</strong> React 18 + Vite</li>
+                <li><strong>UI Library:</strong> Material-UI v5 + Custom Glassmorphism</li>
+                <li><strong>Animations:</strong> Framer Motion</li>
+                <li><strong>Theme:</strong> Dark mode with gradient accents</li>
+                <li><strong>Status:</strong> Phase 2 Modernization Complete ✅</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
