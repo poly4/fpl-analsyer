@@ -239,14 +239,19 @@ class EnhancedH2HAnalyzer:
                     current_gw_picks_m1=manager1_picks,
                     current_gw_picks_m2=manager2_picks,
                     fixture_data=fixtures,
-                    gameweek=gameweek
+                    gameweek=gameweek,
+                    bootstrap_data=bootstrap_data  # Pass bootstrap data for better predictions
                 )
             except Exception as e:
                 logger.error(f"Prediction failed: {e}")
                 prediction_results = {
-                    "win_probability_m1": 0.5,
-                    "win_probability_m2": 0.5,
-                    "confidence": "low",
+                    "manager1_win_probability": 0.45,
+                    "manager2_win_probability": 0.45,
+                    "draw_probability": 0.10,
+                    "confidence": 25.0,
+                    "predicted_winner": None,
+                    "manager1_expected_points": 45.0,
+                    "manager2_expected_points": 45.0,
                     "error": str(e)
                 }
             

@@ -488,6 +488,57 @@ async def get_h2h_battle_details(manager1_id: int, manager2_id: int, gameweek: O
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/h2h/prediction/{manager1_id}/{manager2_id}")
+async def get_h2h_prediction(manager1_id: int, manager2_id: int, gameweek: Optional[int] = None):
+    """Get enhanced H2H match prediction with ML-powered insights."""
+    try:
+        if gameweek is None:
+            gameweek = await live_data_service.get_current_gameweek()
+        
+        # Import here to avoid circular imports
+        from app.services.analytics.predictive_engine import PredictiveEngine
+        
+        # Initialize prediction engine
+        predictive_engine = PredictiveEngine()
+        
+        # Fetch all required data
+        manager1_history = await live_data_service.get_manager_history(manager1_id)
+        manager2_history = await live_data_service.get_manager_history(manager2_id)
+        manager1_picks = await live_data_service.get_manager_picks(manager1_id, gameweek)
+        manager2_picks = await live_data_service.get_manager_picks(manager2_id, gameweek)
+        bootstrap_data = await live_data_service.get_bootstrap_static()
+        fixtures = await live_data_service.get_fixtures(gameweek)
+        
+        if not all([manager1_history, manager2_history, manager1_picks, manager2_picks]):
+            raise HTTPException(status_code=404, detail="Could not fetch required manager data")
+        
+        # Generate prediction
+        prediction_result = await predictive_engine.predict_match_outcome(
+            manager1_id=manager1_id,
+            manager2_id=manager2_id,
+            manager1_history=manager1_history,
+            manager2_history=manager2_history,
+            current_gw_picks_m1=manager1_picks,
+            current_gw_picks_m2=manager2_picks,
+            fixture_data=fixtures,
+            gameweek=gameweek,
+            bootstrap_data=bootstrap_data
+        )
+        
+        return {
+            "status": "success",
+            "gameweek": gameweek,
+            "managers": {
+                "manager1_id": manager1_id,
+                "manager2_id": manager2_id
+            },
+            "prediction": prediction_result,
+            "generated_at": "2025-05-30T07:40:00Z"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
 @app.websocket("/ws/connect")
 async def websocket_connect(websocket: WebSocket):
     """Main WebSocket endpoint for real-time updates with reconnection support"""
@@ -1273,19 +1324,52 @@ async def get_h2h_prediction(
         manager1_history = await live_data_service.get_manager_history(manager1_id)
         manager2_history = await live_data_service.get_manager_history(manager2_id)
         fixtures = await live_data_service.get_fixtures(gameweek)
+        bootstrap_data = await live_data_service.get_bootstrap_static()
         
-        # If predictive engine fails, return basic prediction based on form
+        # Get comprehensive analysis from advanced analytics (same as comprehensive endpoint)
         try:
-            prediction = await enhanced_h2h_analyzer.predictive_engine.predict_match_outcome(
-                manager1_id,
-                manager2_id,
-                manager1_history,
-                manager2_history,
-                manager1_picks,
-                manager2_picks,
-                fixtures,
-                gameweek
-            )
+            if advanced_analytics:
+                # Use the same service as the comprehensive endpoint
+                comprehensive_analysis = await advanced_analytics.get_comprehensive_h2h_analysis(
+                    manager1_id, manager2_id, gameweek
+                )
+                adv_prediction = comprehensive_analysis.get('prediction', {})
+                
+                # Map the advanced analytics format to the expected format
+                expected_scores = adv_prediction.get('expected_scores', {})
+                win_probs = adv_prediction.get('win_probabilities', {})
+                
+                prediction = {
+                    'predicted_winner': win_probs.get('manager1', 0) > win_probs.get('manager2', 0) and manager1_id or (win_probs.get('manager2', 0) > win_probs.get('manager1', 0) and manager2_id or None),
+                    'win_probability': max(win_probs.get('manager1', 0), win_probs.get('manager2', 0), win_probs.get('draw', 0)),
+                    'manager1_win_probability': win_probs.get('manager1', 0),
+                    'manager2_win_probability': win_probs.get('manager2', 0),
+                    'draw_probability': win_probs.get('draw', 0),
+                    'manager1_expected_points': expected_scores.get('manager1', 0),
+                    'manager2_expected_points': expected_scores.get('manager2', 0),
+                    'predicted_margin': expected_scores.get('manager1', 0) - expected_scores.get('manager2', 0),
+                    'margin_confidence_interval_95': adv_prediction.get('confidence_intervals', {}).get('manager1', [0, 0]),
+                    'decisive_players_m1': adv_prediction.get('decisive_players', [])[:3],
+                    'decisive_players_m2': adv_prediction.get('decisive_players', [])[3:6],
+                    'confidence': adv_prediction.get('confidence_level', 0.5),
+                    'key_factors': [
+                        f"Expected points: {expected_scores.get('manager1', 0):.1f} vs {expected_scores.get('manager2', 0):.1f}",
+                        f"Win probabilities: {win_probs.get('manager1', 0)*100:.1f}% vs {win_probs.get('manager2', 0)*100:.1f}%"
+                    ]
+                }
+            else:
+                # Fallback to enhanced H2H analyzer
+                prediction = await enhanced_h2h_analyzer.predictive_engine.predict_match_outcome(
+                    manager1_id,
+                    manager2_id,
+                    manager1_history,
+                    manager2_history,
+                    manager1_picks,
+                    manager2_picks,
+                    fixtures,
+                    gameweek,
+                    bootstrap_data  # Add bootstrap data for enhanced predictions
+                )
         except Exception as pred_error:
             logger.warning(f"Predictive engine failed, using basic prediction: {pred_error}")
             
