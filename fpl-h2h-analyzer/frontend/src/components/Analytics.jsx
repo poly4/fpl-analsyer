@@ -122,6 +122,12 @@ function Analytics({ leagueId = 620117 }) {
     try {
       setGeneratingReport(true);
       
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 60000); // 60 second timeout
+      
       const response = await fetch(`http://localhost:8000/api/report/generate/h2h/${selectedManagers.manager1}/${selectedManagers.manager2}`, {
         method: 'POST',
         headers: {
@@ -129,38 +135,58 @@ function Analytics({ leagueId = 620117 }) {
         },
         body: JSON.stringify({
           league_id: leagueId,
-          format: 'pdf'
-        })
+          format: 'json' // Use JSON format for faster generation
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error('Failed to generate report');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Server error: ${response.status}`);
       }
 
       const result = await response.json();
       
-      // Download the generated report
-      if (result.pdf_path) {
-        const downloadResponse = await fetch(`http://localhost:8000/api/report/download/${result.pdf_path}`);
-        if (downloadResponse.ok) {
-          const blob = await downloadResponse.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `H2H_Report_${selectedManagers.manager1}_vs_${selectedManagers.manager2}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-        }
+      // For JSON format, display the report data or download as file
+      if (result) {
+        // Create a JSON blob and download it
+        const jsonBlob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(jsonBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `H2H_Report_${selectedManagers.manager1}_vs_${selectedManagers.manager2}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Close dialog and reset only on success
+        setReportDialog(false);
+        setSelectedManagers({ manager1: '', manager2: '' });
+        
+        // Show success message
+        alert('Report generated successfully and downloaded!');
       }
-
-      setReportDialog(false);
-      setSelectedManagers({ manager1: '', manager2: '' });
       
     } catch (err) {
       console.error('Error generating report:', err);
-      alert('Failed to generate report');
+      
+      let errorMessage = 'Failed to generate report. ';
+      
+      if (err.name === 'AbortError') {
+        errorMessage += 'Request timed out after 60 seconds. The report generation is taking longer than expected.';
+      } else if (err.message.includes('Server error: 500')) {
+        errorMessage += 'Server error occurred. Please check if the managers exist and try again.';
+      } else if (err.message.includes('Failed to fetch')) {
+        errorMessage += 'Unable to connect to the server. Please check your connection.';
+      } else {
+        errorMessage += err.message;
+      }
+      
+      alert(errorMessage);
+      // Don't close dialog on error - let user try again
     } finally {
       setGeneratingReport(false);
     }

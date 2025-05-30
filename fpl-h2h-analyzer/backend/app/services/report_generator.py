@@ -104,30 +104,45 @@ class ReportGenerator:
         all_matches = []
         h2h_record = {"manager1_wins": 0, "manager2_wins": 0, "draws": 0}
         
-        # Fetch matches for all gameweeks
-        for gw in range(1, 39):  # GW1 to GW38
+        # Fetch matches for all gameweeks in batches for better performance
+        import asyncio
+        
+        async def fetch_gw_matches(gw):
             try:
                 matches = await self.h2h_analyzer.get_h2h_matches(league_id, gw)
-                for match in matches:
-                    if self._is_match_between_managers(match, manager1_id, manager2_id):
-                        all_matches.append(match)
-                        # Update H2H record
-                        if match.get('entry_1_entry') == manager1_id:
-                            if match.get('entry_1_points', 0) > match.get('entry_2_points', 0):
-                                h2h_record["manager1_wins"] += 1
-                            elif match.get('entry_1_points', 0) < match.get('entry_2_points', 0):
-                                h2h_record["manager2_wins"] += 1
-                            else:
-                                h2h_record["draws"] += 1
-                        else:
-                            if match.get('entry_2_points', 0) > match.get('entry_1_points', 0):
-                                h2h_record["manager1_wins"] += 1
-                            elif match.get('entry_2_points', 0) < match.get('entry_1_points', 0):
-                                h2h_record["manager2_wins"] += 1
-                            else:
-                                h2h_record["draws"] += 1
+                return gw, matches
             except Exception as e:
                 logger.warning(f"Error fetching matches for GW{gw}: {e}")
+                return gw, []
+        
+        # Create tasks for all gameweeks and run them concurrently
+        tasks = [fetch_gw_matches(gw) for gw in range(1, 39)]
+        gw_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Process results
+        for gw_result in gw_results:
+            if isinstance(gw_result, Exception):
+                continue
+                
+            gw, matches = gw_result
+            for match in matches:
+                if self._is_match_between_managers(match, manager1_id, manager2_id):
+                    all_matches.append(match)
+                    # Update H2H record
+                    if match.get('entry_1_entry') == manager1_id:
+                        if match.get('entry_1_points', 0) > match.get('entry_2_points', 0):
+                            h2h_record["manager1_wins"] += 1
+                        elif match.get('entry_1_points', 0) < match.get('entry_2_points', 0):
+                            h2h_record["manager2_wins"] += 1
+                        else:
+                            h2h_record["draws"] += 1
+                    else:
+                        if match.get('entry_2_points', 0) > match.get('entry_1_points', 0):
+                            h2h_record["manager1_wins"] += 1
+                        elif match.get('entry_2_points', 0) < match.get('entry_1_points', 0):
+                            h2h_record["manager2_wins"] += 1
+                        else:
+                            h2h_record["draws"] += 1
         
         # Calculate statistics
         stats = self._calculate_season_statistics(all_matches, manager1_id, manager2_id)

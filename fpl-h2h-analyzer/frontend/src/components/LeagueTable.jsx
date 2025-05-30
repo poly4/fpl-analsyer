@@ -191,6 +191,9 @@ function LeagueTable({ leagueId = 620117 }) {
       }
 
       const data = await response.json();
+      console.log('[LeagueTable] API response:', data);
+      console.log('[LeagueTable] Standings data:', data.standings?.standings?.results);
+      console.log('[LeagueTable] First team PA:', data.standings?.standings?.results?.[0]?.points_against);
       setLeagueInfo(data.standings.league);
       setStandings(data.standings.standings.results || []);
     } catch (err) {

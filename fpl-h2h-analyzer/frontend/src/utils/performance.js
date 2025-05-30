@@ -1,4 +1,190 @@
 // Performance optimization utilities
+import { getCLS, getFID, getLCP, getTTFB, getFCP } from 'web-vitals';
+
+// Web Vitals tracking
+export const trackWebVitals = (onPerfEntry) => {
+  if (onPerfEntry && typeof onPerfEntry === 'function') {
+    getCLS(onPerfEntry);
+    getFID(onPerfEntry);
+    getLCP(onPerfEntry);
+    getTTFB(onPerfEntry);
+    getFCP(onPerfEntry);
+  }
+};
+
+// Performance metrics logger
+export const logPerformanceMetrics = () => {
+  trackWebVitals((metric) => {
+    console.log(`[Performance] ${metric.name}:`, metric.value);
+    
+    // Send to analytics service if available
+    if (window.gtag) {
+      window.gtag('event', metric.name, {
+        value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
+        metric_id: metric.id,
+        metric_value: metric.value,
+        metric_delta: metric.delta,
+      });
+    }
+  });
+};
+
+// Component render time tracker
+export class RenderTimeTracker {
+  constructor() {
+    this.startTimes = new Map();
+    this.renderTimes = new Map();
+  }
+
+  startTracking(componentName) {
+    this.startTimes.set(componentName, performance.now());
+  }
+
+  endTracking(componentName) {
+    const startTime = this.startTimes.get(componentName);
+    if (startTime) {
+      const renderTime = performance.now() - startTime;
+      const times = this.renderTimes.get(componentName) || [];
+      times.push(renderTime);
+      this.renderTimes.set(componentName, times);
+      
+      if (renderTime > 16) { // More than one frame
+        console.warn(`[Performance] ${componentName} render took ${renderTime.toFixed(2)}ms`);
+      }
+      
+      return renderTime;
+    }
+  }
+
+  getAverageRenderTime(componentName) {
+    const times = this.renderTimes.get(componentName) || [];
+    if (times.length === 0) return 0;
+    return times.reduce((a, b) => a + b, 0) / times.length;
+  }
+
+  getReport() {
+    const report = {};
+    this.renderTimes.forEach((times, component) => {
+      report[component] = {
+        count: times.length,
+        average: this.getAverageRenderTime(component),
+        max: Math.max(...times),
+        min: Math.min(...times),
+      };
+    });
+    return report;
+  }
+}
+
+// API performance monitor
+export class APIPerformanceMonitor {
+  constructor() {
+    this.requests = new Map();
+  }
+
+  startRequest(url) {
+    const id = `${url}-${Date.now()}`;
+    this.requests.set(id, {
+      url,
+      startTime: performance.now(),
+    });
+    return id;
+  }
+
+  endRequest(id, status) {
+    const request = this.requests.get(id);
+    if (request) {
+      const duration = performance.now() - request.startTime;
+      this.requests.delete(id);
+      
+      // Log slow requests
+      if (duration > 1000) {
+        console.warn(`[API Performance] Slow request to ${request.url}: ${duration.toFixed(2)}ms`);
+      }
+      
+      return {
+        url: request.url,
+        duration,
+        status,
+      };
+    }
+  }
+}
+
+// FPS monitor for animations
+export class FPSMonitor {
+  constructor() {
+    this.lastTime = performance.now();
+    this.frames = 0;
+    this.fps = 0;
+  }
+
+  start() {
+    const measure = () => {
+      const now = performance.now();
+      this.frames++;
+      
+      if (now >= this.lastTime + 1000) {
+        this.fps = Math.round((this.frames * 1000) / (now - this.lastTime));
+        this.lastTime = now;
+        this.frames = 0;
+        
+        if (this.fps < 50) {
+          console.warn(`[Performance] Low FPS: ${this.fps}`);
+        }
+      }
+      
+      requestAnimationFrame(measure);
+    };
+    
+    requestAnimationFrame(measure);
+  }
+
+  getFPS() {
+    return this.fps;
+  }
+}
+
+// Memory usage monitor
+export const monitorMemoryUsage = (callback) => {
+  if (performance.memory) {
+    const checkMemory = () => {
+      const memInfo = {
+        usedJSHeapSize: performance.memory.usedJSHeapSize,
+        totalJSHeapSize: performance.memory.totalJSHeapSize,
+        jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
+        percentUsed: (performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100
+      };
+      
+      if (memInfo.percentUsed > 80) {
+        console.warn('[Memory] High memory usage:', memInfo);
+      }
+      
+      if (callback) callback(memInfo);
+    };
+    
+    setInterval(checkMemory, 30000); // Check every 30 seconds
+    checkMemory(); // Initial check
+  }
+};
+
+// Bundle size tracking
+export const trackBundleSize = () => {
+  if (window.performance && window.performance.getEntriesByType) {
+    const resources = window.performance.getEntriesByType('resource');
+    const jsResources = resources.filter(r => r.name.endsWith('.js'));
+    const cssResources = resources.filter(r => r.name.endsWith('.css'));
+    
+    const totalJSSize = jsResources.reduce((acc, r) => acc + r.transferSize, 0);
+    const totalCSSSize = cssResources.reduce((acc, r) => acc + r.transferSize, 0);
+    
+    console.log('[Bundle Size]', {
+      js: `${(totalJSSize / 1024).toFixed(2)} KB`,
+      css: `${(totalCSSSize / 1024).toFixed(2)} KB`,
+      total: `${((totalJSSize + totalCSSSize) / 1024).toFixed(2)} KB`
+    });
+  }
+};
 
 // Debounce function for expensive operations
 export const debounce = (func, wait) => {
@@ -196,4 +382,69 @@ export const perfMeasure = (name, startMark, endMark) => {
     }
   }
   return 0;
+};
+
+// Prefetch likely navigations
+export const prefetchRoutes = (routes) => {
+  if ('prefetch' in HTMLLinkElement.prototype) {
+    routes.forEach(route => {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = route;
+      document.head.appendChild(link);
+    });
+  }
+};
+
+// Performance optimization recommendations
+export const getPerformanceRecommendations = () => {
+  const recommendations = [];
+  
+  // Check for large images
+  const images = document.querySelectorAll('img');
+  images.forEach(img => {
+    if (img.naturalWidth > 2000 || img.naturalHeight > 2000) {
+      recommendations.push(`Large image detected: ${img.src}`);
+    }
+  });
+  
+  // Check for too many DOM nodes
+  const nodeCount = document.querySelectorAll('*').length;
+  if (nodeCount > 1500) {
+    recommendations.push(`High DOM node count: ${nodeCount}. Consider virtualizing lists.`);
+  }
+  
+  // Check for layout thrashing
+  const reflows = performance.getEntriesByType('measure').filter(m => m.name.includes('reflow'));
+  if (reflows.length > 10) {
+    recommendations.push(`Multiple reflows detected (${reflows.length}). Batch DOM updates.`);
+  }
+  
+  return recommendations;
+};
+
+// Initialize all performance monitors
+export const initializePerformanceMonitoring = () => {
+  // Track web vitals
+  logPerformanceMetrics();
+  
+  // Monitor memory
+  monitorMemoryUsage();
+  
+  // Track bundle size
+  window.addEventListener('load', trackBundleSize);
+  
+  // Start FPS monitoring
+  const fpsMonitor = new FPSMonitor();
+  fpsMonitor.start();
+  
+  // Export for debugging
+  window.__performanceUtils = {
+    renderTracker: new RenderTimeTracker(),
+    apiMonitor: new APIPerformanceMonitor(),
+    fpsMonitor,
+    getRecommendations: getPerformanceRecommendations
+  };
+  
+  console.log('[Performance] Monitoring initialized. Access via window.__performanceUtils');
 };

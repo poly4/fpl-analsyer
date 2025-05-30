@@ -1,0 +1,109 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Pre-commit hook for FPL H2H Analyzer
+# Runs quality checks before allowing commits
+
+echo "🔍 Running pre-commit checks..."
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$')
+
+if [ -z "$STAGED_FILES" ]; then
+  echo "✅ No JavaScript/TypeScript files to check"
+  exit 0
+fi
+
+# Change to frontend directory for checks
+cd frontend
+
+# 1. ESLint Check
+echo "📝 Running ESLint..."
+npx eslint $STAGED_FILES --fix
+ESLINT_EXIT=$?
+
+if [ $ESLINT_EXIT -ne 0 ]; then
+  echo "❌ ESLint failed. Please fix errors before committing."
+  exit 1
+fi
+
+# Re-add files that were fixed by ESLint
+git add $STAGED_FILES
+
+# 2. TypeScript Type Check
+echo "🔷 Checking TypeScript types..."
+npx tsc --noEmit
+TSC_EXIT=$?
+
+if [ $TSC_EXIT -ne 0 ]; then
+  echo "❌ TypeScript type check failed. Please fix errors before committing."
+  exit 1
+fi
+
+# 3. Run Component Tests
+echo "🧪 Running component tests..."
+npm test -- --watchAll=false --passWithNoTests
+TEST_EXIT=$?
+
+if [ $TEST_EXIT -ne 0 ]; then
+  echo "❌ Tests failed. Please fix failing tests before committing."
+  exit 1
+fi
+
+# 4. Accessibility Check
+echo "♿ Validating accessibility..."
+# Run a quick accessibility check on changed components
+for file in $STAGED_FILES; do
+  if [[ $file == *.jsx ]] || [[ $file == *.tsx ]]; then
+    # Check for basic accessibility attributes
+    if grep -E '<(img|button|input|select|textarea)' "$file" > /dev/null; then
+      # Check for alt text on images
+      if grep -E '<img(?![^>]*alt=)' "$file" > /dev/null; then
+        echo "⚠️  Warning: Image without alt text in $file"
+      fi
+      
+      # Check for aria-label on icon buttons
+      if grep -E '<IconButton(?![^>]*(aria-label|title)=)' "$file" > /dev/null; then
+        echo "⚠️  Warning: IconButton without aria-label in $file"
+      fi
+    fi
+  fi
+done
+
+# 5. Check Bundle Size
+echo "📦 Checking bundle size..."
+# Build and analyze bundle size
+npm run build -- --mode production > /dev/null 2>&1
+BUILD_EXIT=$?
+
+if [ $BUILD_EXIT -ne 0 ]; then
+  echo "❌ Build failed. Please fix build errors before committing."
+  exit 1
+fi
+
+# Check if bundle size exceeds limits
+BUNDLE_SIZE=$(du -sk dist | cut -f1)
+MAX_SIZE=300 # 300KB limit
+
+if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+  echo "❌ Bundle size ($BUNDLE_SIZE KB) exceeds limit ($MAX_SIZE KB)"
+  echo "   Run 'npm run analyze' to see what's taking up space"
+  exit 1
+fi
+
+# 6. Performance Budget Check
+echo "⚡ Checking performance budget..."
+# Simple check for large image files
+LARGE_IMAGES=$(find public -name "*.jpg" -o -name "*.png" -o -name "*.gif" | xargs ls -la | awk '$5 > 200000 {print $9}')
+if [ ! -z "$LARGE_IMAGES" ]; then
+  echo "⚠️  Warning: Large image files detected (>200KB):"
+  echo "$LARGE_IMAGES"
+  echo "   Consider optimizing these images"
+fi
+
+# Success!
+echo "✅ All pre-commit checks passed!"
+echo "📊 Bundle size: ${BUNDLE_SIZE}KB"
+echo "🎉 Committing your changes..."
+
+exit 0

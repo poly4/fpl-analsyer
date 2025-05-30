@@ -101,6 +101,16 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       output: {
+        // Manual chunk splitting for optimal loading
+        manualChunks: {
+          // Vendor chunks
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'mui-vendor': ['@mui/material', '@mui/icons-material', '@mui/lab', '@emotion/react', '@emotion/styled'],
+          'charts-vendor': ['recharts', 'd3'],
+          '3d-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
+          'animation-vendor': ['framer-motion'],
+          'utils-vendor': ['axios', 'socket.io-client']
+        },
         // Optimize chunk names
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
@@ -116,6 +126,11 @@ export default defineConfig({
           }
           return `[ext]/[name].[hash][extname]`;
         }
+      },
+      // Enable tree shaking
+      treeshake: {
+        preset: 'recommended',
+        moduleSideEffects: false
       }
     },
     // Minification

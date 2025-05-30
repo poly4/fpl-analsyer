@@ -1,57 +1,172 @@
 import axios from 'axios';
+import cacheService from './cache';
 
 const API_BASE_URL = '/api';
 
+// Get performance monitor from window if available
+const getAPIMonitor = () => window.__performanceUtils?.apiMonitor;
+
+// Create axios instance with interceptors
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 });
+
+// Request interceptor for performance tracking
+api.interceptors.request.use(
+  (config) => {
+    // Track API request start
+    const monitor = getAPIMonitor();
+    if (monitor) {
+      config.metadata = { requestId: monitor.startRequest(config.url) };
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor for performance tracking and caching
+api.interceptors.response.use(
+  (response) => {
+    // Track API request end
+    const monitor = getAPIMonitor();
+    if (monitor && response.config.metadata?.requestId) {
+      monitor.endRequest(response.config.metadata.requestId, response.status);
+    }
+    return response;
+  },
+  (error) => {
+    // Track failed request
+    const monitor = getAPIMonitor();
+    if (monitor && error.config?.metadata?.requestId) {
+      monitor.endRequest(error.config.metadata.requestId, error.response?.status || 0);
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Cache-aware API wrapper
+const cachedApiCall = async (endpoint, dataType, fetchFn, forceRefresh = false) => {
+  const cacheKey = cacheService.generateKey(endpoint);
+  
+  // Skip cache if forced refresh
+  if (!forceRefresh) {
+    const cached = cacheService.get(cacheKey);
+    if (cached) {
+      console.log(`[API] Cache hit: ${endpoint}`);
+      return cached;
+    }
+  }
+  
+  // Fetch from API
+  console.log(`[API] Fetching: ${endpoint}`);
+  const data = await fetchFn();
+  
+  // Cache the response
+  cacheService.set(cacheKey, data, dataType);
+  
+  return data;
+};
 
 export const fplApi = {
   // Get current gameweek
-  getCurrentGameweek: async () => {
-    const response = await api.get('/gameweek/current');
-    return response.data;
+  getCurrentGameweek: async (forceRefresh = false) => {
+    return cachedApiCall(
+      '/gameweek/current',
+      'default',
+      async () => {
+        const response = await api.get('/gameweek/current');
+        return response.data;
+      },
+      forceRefresh
+    );
   },
 
   // Get league overview
-  getLeagueOverview: async (leagueId) => {
-    const response = await api.get(`/league/${leagueId}/overview`);
-    return response.data;
+  getLeagueOverview: async (leagueId, forceRefresh = false) => {
+    return cachedApiCall(
+      `/league/${leagueId}/overview`,
+      'league_overview',
+      async () => {
+        const response = await api.get(`/league/${leagueId}/overview`);
+        return response.data;
+      },
+      forceRefresh
+    );
   },
 
   // Get league standings (Top Dog Premier League uses H2H format)
-  getLeagueStandings: async (leagueId) => {
-    const response = await api.get(`/league/standings/${leagueId}`);
-    return response.data;
+  getLeagueStandings: async (leagueId, forceRefresh = false) => {
+    return cachedApiCall(
+      `/league/standings/${leagueId}`,
+      'league_standings',
+      async () => {
+        const response = await api.get(`/league/standings/${leagueId}`);
+        return response.data;
+      },
+      forceRefresh
+    );
   },
 
   // Get live H2H battles
-  getLiveBattles: async (leagueId, gameweek = null) => {
+  getLiveBattles: async (leagueId, gameweek = null, forceRefresh = false) => {
     const params = gameweek ? { gameweek } : {};
-    const response = await api.get(`/h2h/live-battles/${leagueId}`, { params });
-    return response.data;
+    const endpoint = `/h2h/live-battles/${leagueId}${gameweek ? `?gameweek=${gameweek}` : ''}`;
+    
+    return cachedApiCall(
+      endpoint,
+      'live_battles',
+      async () => {
+        const response = await api.get(`/h2h/live-battles/${leagueId}`, { params });
+        return response.data;
+      },
+      forceRefresh
+    );
   },
 
   // Get H2H battle details
-  getBattleDetails: async (manager1Id, manager2Id, gameweek = null) => {
+  getBattleDetails: async (manager1Id, manager2Id, gameweek = null, forceRefresh = false) => {
     const params = gameweek ? { gameweek } : {};
-    const response = await api.get(`/h2h/battle/${manager1Id}/${manager2Id}`, { params });
-    return response.data;
+    const endpoint = `/h2h/battle/${manager1Id}/${manager2Id}${gameweek ? `?gameweek=${gameweek}` : ''}`;
+    
+    return cachedApiCall(
+      endpoint,
+      'live_data',
+      async () => {
+        const response = await api.get(`/h2h/battle/${manager1Id}/${manager2Id}`, { params });
+        return response.data;
+      },
+      forceRefresh
+    );
   },
 
   // Get manager info
-  getManagerInfo: async (managerId) => {
-    const response = await api.get(`/manager/${managerId}`);
-    return response.data;
+  getManagerInfo: async (managerId, forceRefresh = false) => {
+    return cachedApiCall(
+      `/manager/${managerId}`,
+      'manager_info',
+      async () => {
+        const response = await api.get(`/manager/${managerId}`);
+        return response.data;
+      },
+      forceRefresh
+    );
   },
 
   // Get manager history
-  getManagerHistory: async (managerId) => {
-    const response = await api.get(`/manager/${managerId}/history`);
-    return response.data;
+  getManagerHistory: async (managerId, forceRefresh = false) => {
+    return cachedApiCall(
+      `/manager/${managerId}/history`,
+      'manager_history',
+      async () => {
+        const response = await api.get(`/manager/${managerId}/history`);
+        return response.data;
+      },
+      forceRefresh
+    );
   },
 
   // Analytics endpoints

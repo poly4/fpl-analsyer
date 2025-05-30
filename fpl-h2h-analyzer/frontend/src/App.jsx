@@ -3,6 +3,19 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box, AppBar, Toolbar, Typography, Tabs, Tab, useMediaQuery } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { initializePerformanceMonitoring, prefetchRoutes } from './utils/performance';
+
+// Initialize performance monitoring
+if (typeof window !== 'undefined') {
+  initializePerformanceMonitoring();
+  
+  // Prefetch likely routes
+  prefetchRoutes([
+    '/api/league/620117',
+    '/api/gameweek/current',
+    '/api/bootstrap-static'
+  ]);
+}
 
 // Debug logging
 console.log('🚀 Full FPL H2H Analyzer loading...');
