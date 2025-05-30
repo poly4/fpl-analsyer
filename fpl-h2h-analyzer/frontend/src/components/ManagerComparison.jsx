@@ -40,6 +40,7 @@ import { fplApi } from '../services/api';
 import { H2HComparisonSkeleton } from './Skeletons';
 import { useOptimizedAPI } from '../hooks/useOptimizedAPI';
 import cacheService from '../services/cache';
+import ManagerProfile from './ManagerProfile';
 
 // Import modern components
 import {
@@ -112,6 +113,8 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
   const [battleData, setBattleData] = useState(null);
   const [manager1Info, setManager1Info] = useState(null);
   const [manager2Info, setManager2Info] = useState(null);
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [openManagerProfile, setOpenManagerProfile] = useState(false);
 
   useEffect(() => {
     fetchComparisonData();
@@ -250,12 +253,21 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
                   sx={{ 
                     fontWeight: 600,
                     mb: 0.5,
+                    cursor: 'pointer',
                     background: manager1Winning && !isDraw ? 
                       'linear-gradient(135deg, #00ff88 0%, #00d4aa 100%)' : 
                       'inherit',
                     WebkitBackgroundClip: manager1Winning && !isDraw ? 'text' : 'inherit',
                     WebkitTextFillColor: manager1Winning && !isDraw ? 'transparent' : 'inherit',
                     backgroundClip: manager1Winning && !isDraw ? 'text' : 'inherit',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      opacity: 0.8
+                    }
+                  }}
+                  onClick={() => {
+                    setSelectedManager({ id: manager1.entry, name: manager1.player_name });
+                    setOpenManagerProfile(true);
                   }}
                 >
                   {manager1.player_name}
@@ -383,12 +395,21 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
                   sx={{ 
                     fontWeight: 600,
                     mb: 0.5,
+                    cursor: 'pointer',
                     background: !manager1Winning && !isDraw ? 
                       'linear-gradient(135deg, #00ff88 0%, #00d4aa 100%)' : 
                       'inherit',
                     WebkitBackgroundClip: !manager1Winning && !isDraw ? 'text' : 'inherit',
                     WebkitTextFillColor: !manager1Winning && !isDraw ? 'transparent' : 'inherit',
                     backgroundClip: !manager1Winning && !isDraw ? 'text' : 'inherit',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      opacity: 0.8
+                    }
+                  }}
+                  onClick={() => {
+                    setSelectedManager({ id: manager2.entry, name: manager2.player_name });
+                    setOpenManagerProfile(true);
                   }}
                 >
                   {manager2.player_name}
@@ -783,6 +804,19 @@ function ManagerComparison({ manager1, manager2, leagueId }) {
           </Grid>
         </TabPanel>
       </GlassCard>
+
+      {/* Manager Profile Dialog */}
+      {selectedManager && (
+        <ManagerProfile
+          managerId={selectedManager.id}
+          managerName={selectedManager.name}
+          open={openManagerProfile}
+          onClose={() => {
+            setOpenManagerProfile(false);
+            setSelectedManager(null);
+          }}
+        />
+      )}
     </motion.div>
   );
 }

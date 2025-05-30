@@ -28,6 +28,7 @@ import {
   Download,
   Assessment
 } from '@mui/icons-material';
+import ManagerProfile from './ManagerProfile';
 
 function Analytics({ leagueId = 620117 }) {
   const [leagueData, setLeagueData] = useState(null);
@@ -37,6 +38,8 @@ function Analytics({ leagueId = 620117 }) {
   const [reportDialog, setReportDialog] = useState(false);
   const [selectedManagers, setSelectedManagers] = useState({ manager1: '', manager2: '' });
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [openManagerProfile, setOpenManagerProfile] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
@@ -310,7 +313,20 @@ function Analytics({ leagueId = 620117 }) {
               <Typography variant="subtitle2" color="primary" gutterBottom>
                 Highest Scorer
               </Typography>
-              <Typography variant="body1">
+              <Typography 
+                variant="body1"
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { color: 'primary.main', textDecoration: 'underline' }
+                }}
+                onClick={() => {
+                  setSelectedManager({ 
+                    id: analytics.topScorer.entry, 
+                    name: analytics.topScorer.player_name || `Manager ${analytics.topScorer.entry}`
+                  });
+                  setOpenManagerProfile(true);
+                }}
+              >
                 <strong>{analytics.topScorer.player_name || `Manager ${analytics.topScorer.entry}`}</strong>
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -322,7 +338,20 @@ function Analytics({ leagueId = 620117 }) {
               <Typography variant="subtitle2" color="primary" gutterBottom>
                 Most Wins
               </Typography>
-              <Typography variant="body1">
+              <Typography 
+                variant="body1"
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { color: 'primary.main', textDecoration: 'underline' }
+                }}
+                onClick={() => {
+                  setSelectedManager({ 
+                    id: analytics.mostWins.entry, 
+                    name: analytics.mostWins.player_name || `Manager ${analytics.mostWins.entry}`
+                  });
+                  setOpenManagerProfile(true);
+                }}
+              >
                 <strong>{analytics.mostWins.player_name || `Manager ${analytics.mostWins.entry}`}</strong>
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -355,7 +384,20 @@ function Analytics({ leagueId = 620117 }) {
               <Typography variant="subtitle2" color="error" gutterBottom>
                 Lowest Scorer
               </Typography>
-              <Typography variant="body1">
+              <Typography 
+                variant="body1"
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { color: 'primary.main', textDecoration: 'underline' }
+                }}
+                onClick={() => {
+                  setSelectedManager({ 
+                    id: analytics.bottomScorer.entry, 
+                    name: analytics.bottomScorer.player_name || `Manager ${analytics.bottomScorer.entry}`
+                  });
+                  setOpenManagerProfile(true);
+                }}
+              >
                 <strong>{analytics.bottomScorer.player_name || `Manager ${analytics.bottomScorer.entry}`}</strong>
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -367,7 +409,20 @@ function Analytics({ leagueId = 620117 }) {
               <Typography variant="subtitle2" color="error" gutterBottom>
                 Fewest Wins
               </Typography>
-              <Typography variant="body1">
+              <Typography 
+                variant="body1"
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { color: 'primary.main', textDecoration: 'underline' }
+                }}
+                onClick={() => {
+                  setSelectedManager({ 
+                    id: analytics.leastWins.entry, 
+                    name: analytics.leastWins.player_name || `Manager ${analytics.leastWins.entry}`
+                  });
+                  setOpenManagerProfile(true);
+                }}
+              >
                 <strong>{analytics.leastWins.player_name || `Manager ${analytics.leastWins.entry}`}</strong>
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -436,6 +491,19 @@ function Analytics({ leagueId = 620117 }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Manager Profile Dialog */}
+      {selectedManager && (
+        <ManagerProfile
+          managerId={selectedManager.id}
+          managerName={selectedManager.name}
+          open={openManagerProfile}
+          onClose={() => {
+            setOpenManagerProfile(false);
+            setSelectedManager(null);
+          }}
+        />
+      )}
     </Box>
   );
 }

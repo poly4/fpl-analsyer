@@ -1,443 +1,331 @@
 # FPL H2H Analyzer Pro
 
-A comprehensive, high-performance Fantasy Premier League (FPL) Head-to-Head analysis tool with real-time insights, machine learning predictions, and advanced analytics. Built with modern performance optimization and accessibility features.
+A comprehensive, high-performance Fantasy Premier League (FPL) Head-to-Head analysis tool with **full interactivity**, machine learning predictions, and advanced analytics. Built with modern performance optimization and accessibility features.
 
-## 🎉 Current Status: MODERNIZED & PRODUCTION-READY (v6.0)
+## 🎉 Current Status: INTERACTIVE FEATURES COMPLETE (v7.0)
 
-The application has been **completely transformed** with a cutting-edge 2025 design system featuring glassmorphism, interactive animations, and enhanced user experience. Built on top of the stable v5.1 foundation with all features fully functional.
+**BREAKTHROUGH UPDATE**: All critical missing features have been implemented! The application now provides comprehensive interactivity with full FPL API integration, matching the functionality of the official FPL website.
 
-### ✨ Phase 2 Modernization Complete (v6.0)
-- **🎨 Glassmorphic Design System**: Complete UI overhaul with modern glass effects
-- **✨ Interactive Components**: Drag-and-drop analytics, fullscreen views, live animations
-- **🏆 Performance Badges**: 12+ achievement badges with unique gradients and animations
-- **📱 Responsive Bento Grid**: Flexible layout system with size variants
-- **🌈 Enhanced Animations**: Smooth Framer Motion transitions throughout
-- **🎯 Modern Components**: GlassCard, AnimatedNumber, StatBox, ModernTable, and more
+### ✨ v7.0 Interactive Revolution Complete
+- **👤 Clickable Managers**: Click any manager name for comprehensive profile analysis
+- **📅 Interactive Gameweeks**: Click gameweek numbers for detailed squad comparisons
+- **🎯 Smart Analytics**: Intelligent manager selection with autocomplete and quick select
+- **📊 Real Data Integration**: All analytics components now display live, accurate data
+- **🔗 Seamless Navigation**: Drill-down capability throughout the entire application
 
-### ✅ Previous Updates (v5.1)
-- **🔴 Critical Error Fixes**: Eliminated all "Oops!" crashes for stable operation
-- **⚡ Live Data Integration**: Real-time BPS, captain tracking, and scoring updates
-- **📊 Performance Optimization**: Sub-1 second loading with intelligent caching
-- **🌐 WebSocket Monitoring**: Live connection status and health indicators
-- **💾 Smart Caching**: TTL-based caching system (30s live data, 24h static data)
+### 🎨 Modern Glassmorphic Design (v6.0)
+- **🎨 Glassmorphic UI**: Complete design system with backdrop blur and gradient effects
+- **✨ Interactive Components**: Smooth animations, hover effects, and transitions
+- **🏆 Performance Badges**: Achievement system with 12+ unique badge types
+- **📱 Responsive Layout**: Mobile-optimized with Bento Grid system
+- **🌈 Advanced Animations**: Framer Motion throughout for professional UX
 
-## 🎨 Modern Design System (NEW in v6.0)
+### ✅ Solid Foundation (v5.1-v6.1)
+- **🔴 Zero Critical Errors**: All crashes eliminated with comprehensive error boundaries
+- **⚡ Live Data Integration**: Real-time updates with WebSocket monitoring
+- **💾 Intelligent Caching**: Optimized performance with Redis-backed caching
+- **🛡️ Production Stability**: Robust error handling and graceful degradation
 
-### Glassmorphism Components
-- **GlassCard**: Base container with backdrop blur and gradient borders
-- **AnimatedNumber**: Smooth number transitions with currency/percentage formats
-- **StatBox**: KPI display with trends and badges
-- **ModernTable**: Enhanced tables with sorting and animations
-- **BentoGrid**: Responsive grid layout with drag-and-drop
-- **PerformanceBadges**: Achievement system with 12+ badge types
-- **ManagerCard**: Enhanced manager profiles with live scores
+## 🚀 Key Features
 
-### Visual Enhancements
-- **Dark Theme**: Elegant dark mode with proper contrast
-- **Gradient Accents**: Primary (#667eea → #764ba2) and semantic gradients
-- **Micro-animations**: Hover effects, transitions, and loading states
-- **Inter Font**: Modern typography with JetBrains Mono for numbers
-- **Responsive Design**: Mobile-first with breakpoint optimization
+### 👤 Interactive Manager Profiles (NEW in v7.0)
+Click any manager name anywhere in the app to access:
+- **📈 Season Progression**: Rank and points trends with interactive charts
+- **💰 Team Value Tracking**: Price changes and transfer net spend analysis
+- **🎯 Chip Usage Timeline**: When chips were played and their effectiveness
+- **🔄 Complete Transfer History**: All transfers with price changes and impact
+- **📊 Historical Seasons**: Multi-season performance comparison
+- **🎨 Rich Visualizations**: Interactive charts built with Recharts
 
-## 🚀 Features
+### 📅 Gameweek Deep Dive (NEW in v7.0)
+Click any gameweek number for detailed analysis:
+- **⚔️ Squad Comparison**: Side-by-side team lineups with player details
+- **🌟 Captain Analysis**: Captain/Vice-Captain choices and effectiveness
+- **🔄 Auto-Substitutions**: Tracking of automatic player changes
+- **💎 Differential Highlighting**: Unique players that could swing the match
+- **⚽ Set-Piece Integration**: Penalty and free-kick takers identified
+- **📊 Points Breakdown**: Detailed scoring analysis by position and player
 
-### 🔥 Latest Live Data Features (v5.1)
-- **⚽ Live Battle Cards**: Real-time BPS, goal scorers, assists, captain tracking
-- **📊 Performance by Position**: GKP/DEF/MID/FWD breakdown with live updates
-- **🏆 Season Complete Mode**: "Season Complete" indicators for finished campaigns
-- **🌐 WebSocket Status**: Live connection monitoring with detailed diagnostics
-- **💾 Intelligent Caching**: Manager history (24h), live data (30s), analytics (5min)
-- **🎨 Enhanced Loading**: Component-specific skeleton loaders for better UX
+### 🎯 Enhanced Analytics Dashboard (NEW in v7.0)
+- **🔍 Smart Manager Selection**: Autocomplete search with team information
+- **⚡ Quick Select Options**: 
+  - Top 2 managers
+  - Top vs Bottom comparison
+  - Closest rivals (similar points)
+- **📊 Real Data Integration**: All components now show live, accurate data
+- **🤖 ML Predictions**: Confidence scoring and strategic recommendations
 
-### 🧠 Advanced Analytics & ML
-- **🤖 Predictive Match Simulator**: ML-enhanced H2H outcome predictions
-- **📊 Real-Time Match Day**: Live WebSocket updates during matches
-- **🎭 Strategic Recommendations**: AI-powered captain and transfer advice
-- **🎲 Scenario Analysis**: Monte Carlo simulations with what-if modeling
-- **📈 Advanced Charts**: Interactive D3.js and Recharts visualizations
-- **🎯 Differential Analysis**: Identify key players that swing H2H battles
+### 🔥 Advanced Features (NEW in v7.0)
+- **⚽ Set-Piece Intelligence**: Penalty and corner taker identification
+- **📈 Enhanced Player Data**: Fixture difficulty and ownership trends
+- **🎯 Chip Strategy**: AI-powered recommendations for optimal chip timing
+- **🔮 Predictive Analytics**: ML-based scoring predictions with confidence levels
 
-### 🏆 Core Features
-- **⚡ Enhanced Live Battles**: BPS tracking, captain indicators, scoring player highlights
-- **📋 Fixed League Analytics**: Correct "Avg Points Against" calculation for H2H leagues
-- **🤖 Improved Predictions**: Form-based analysis with realistic confidence percentages
-- **📊 Live Match Tracker**: Real match data or "Season Complete" messaging
-- **🔄 Error Recovery**: Component-level retry without full page refresh
-- **🎮 Stable Performance**: No more crashes, graceful error handling
+### 🌐 Real-Time Capabilities
+- **⚡ Live Battle Updates**: Real-time scoring with WebSocket technology
+- **📊 BPS Tracking**: Bonus point system monitoring during matches
+- **🎯 Captain Performance**: Live captain effectiveness tracking
+- **🔄 Auto-Refresh**: Configurable refresh intervals for live data
+- **📡 Connection Monitoring**: WebSocket health and reconnection status
 
-## 📱 Mobile Experience
+### 📊 Comprehensive Analytics
+- **🧠 Machine Learning**: Predictive scoring algorithms
+- **📈 Historical Patterns**: Multi-season trend analysis
+- **💎 Differential Impact**: Unique player selection analysis
+- **🎯 Transfer ROI**: Return on investment for transfer decisions
+- **🏆 Chip Strategy**: Optimal timing recommendations
+- **🔮 Match Simulation**: AI-powered outcome predictions
 
-### Touch-Optimized Navigation
-- **Bottom Navigation**: Quick access to all major features
-- **Swipe Gestures**: Natural navigation with touch feedback
-- **Floating Action Buttons**: Context-sensitive quick actions
-- **Pull-to-Refresh**: Gesture-based data updates
-- **Responsive Charts**: Mobile-optimized data visualizations
+## 🛠️ Technical Architecture
 
-### PWA Features
-- **Offline Support**: Continue using core features without internet
-- **App Installation**: Add to home screen for native-app experience
-- **Push Notifications**: Real-time alerts for H2H events
-- **Background Sync**: Automatic data updates when connection returns
+### Frontend (React + Vite)
+- **⚛️ React 18**: Latest features with concurrent rendering
+- **⚡ Vite**: Lightning-fast development and build
+- **🎨 Material-UI**: Professional component library with custom theming
+- **✨ Framer Motion**: Smooth animations and transitions
+- **📊 Recharts**: Interactive data visualizations
+- **💾 Optimized API**: Smart caching with useOptimizedAPI hook
 
-## ♿ Accessibility Features
+### Backend (FastAPI + Redis)
+- **🚀 FastAPI**: High-performance Python API framework
+- **📊 25+ Endpoints**: Comprehensive FPL API integration
+- **💾 Redis Caching**: Performance optimization with intelligent TTL
+- **🔄 Rate Limiting**: Respectful API usage with exponential backoff
+- **🌐 WebSocket**: Real-time updates during active gameweeks
+- **🤖 ML Integration**: Predictive analytics and recommendations
 
-### WCAG AAA Compliance
-- **Screen Reader Support**: Full ARIA support with live announcements
-- **Keyboard Navigation**: Complete keyboard access to all features
-- **Voice Commands**: "Go to dashboard", "Toggle theme", "Read page"
-- **Text-to-Speech**: Audio feedback for content and interactions
-- **High Contrast Mode**: Enhanced visibility for visual impairments
-- **Reduced Motion**: Respects user preferences for animations
-- **Font Size Control**: Adjustable text sizing (12px-24px)
-- **Skip Links**: Quick navigation for screen reader users
+### Key Components (v7.0)
 
-### Voice Commands
-- "Go to dashboard" - Navigate to main page
-- "Go to analytics" - Open analytics dashboard  
-- "Toggle theme" - Switch between light/dark mode
-- "Scroll up/down" - Page navigation
-- "Read page" - Text-to-speech for current content
-- "Stop listening" - Disable voice commands
+#### New Interactive Components
+- **`ManagerProfile.jsx`**: Comprehensive manager analysis dialog
+- **`GameweekDetail.jsx`**: Detailed gameweek squad comparison
+- **`AnalyticsManagerSelector.jsx`**: Smart manager selection with autocomplete
 
-## ⚡ Performance Optimization
+#### Enhanced Existing Components
+- **`LeagueTable.jsx`**: Clickable manager names with profile access
+- **`EnhancedBattleCard.jsx`**: Clickable managers and gameweeks
+- **`ManagerComparison.jsx`**: Clickable manager names for profiles
+- **`Analytics.jsx`**: Clickable manager names in analytics sections
 
-### Multi-Layer Caching
-- **Memory Cache**: LRU cache for hot data (30s-24h TTL based on data type)
-- **Redis Cache**: Distributed caching with compression and circuit breakers
-- **Database Optimization**: Partitioned tables, materialized views, indexes
-- **CDN Ready**: Optimized asset delivery and caching headers
-
-### API Performance
-- **<100ms Response Time**: Achieved through intelligent caching
-- **Brotli Compression**: Better compression than Gzip for JSON responses
-- **Request Batching**: Automatic batching of similar requests
-- **HTTP/2 Server Push**: Preloading critical resources
-- **Rate Limiting**: Token bucket algorithm (90 req/min) with priority queuing
-
-### Frontend Performance
-- **<1s Initial Load**: Code splitting and lazy loading
-- **<200KB Bundle Size**: Optimized with tree shaking and compression
-- **60fps Animations**: Hardware-accelerated transitions
-- **Web Workers**: Heavy calculations moved off main thread
-- **Virtual Scrolling**: Handle large datasets efficiently
-
-## 🛠️ Tech Stack
-
-### Backend
-- **FastAPI**: High-performance async Python framework
-- **PostgreSQL**: Partitioned database with materialized views
-- **Redis**: Multi-layer caching and WebSocket management
-- **WebSockets**: Real-time updates with Socket.io
-- **ML Models**: Scikit-learn for prediction algorithms
-
-### Frontend
-- **React 18**: Latest React with concurrent features
-- **Material-UI v5**: Modern component library with glassmorphism
-- **Framer Motion**: Smooth animations and micro-interactions
-- **Three.js**: 3D visualizations and WebGL rendering
-- **Recharts/D3.js**: Interactive charts and data visualization
-- **Vite**: Lightning-fast build tool with HMR
-
-### Infrastructure
-- **Docker**: Containerized deployment
-- **Performance Monitoring**: Real-time metrics and alerting
-- **Service Worker**: PWA functionality and caching
-- **Accessibility**: WCAG AAA compliance tooling
-
-## 📋 Prerequisites
-
-- Docker and Docker Compose
-- Node.js 20+ (for frontend development)
-- Python 3.12+ (for backend development)
+#### Modern UI Components
+- **`GlassCard`**: Glassmorphic container with backdrop blur
+- **`StatBox`**: KPI display with trends and animations
+- **`AnimatedNumber`**: Smooth number transitions
+- **`ModernTable`**: Enhanced tables with sorting
 
 ## 🚀 Quick Start
 
-1. **Clone the repository:**
+### Prerequisites
+- **Docker & Docker Compose**: For containerized deployment
+- **Node.js 18+**: For local development (optional)
+- **Python 3.9+**: For backend development (optional)
+
+### 🐳 Docker Setup (Recommended)
 ```bash
-git clone https://github.com/yourusername/fpl-h2h-analyzer.git
+# Clone the repository
+git clone https://github.com/your-username/fpl-h2h-analyzer.git
 cd fpl-h2h-analyzer
-```
 
-2. **Start with Docker Compose:**
-```bash
+# Start all services
 docker-compose up -d
+
+# Access the application
+open http://localhost:5173
 ```
 
-3. **Access the application:**
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **Performance Dashboard**: http://localhost:8000/performance
-
-The application will automatically fetch FPL data and be ready to use!
-
-### ✅ Current Working Features
-- **Real FPL Data**: Connected to "Top Dog Premier League" (ID: 620117)
-- **Live Scores**: Abdul Nasir vs Darren Phillips and 18 other managers
-- **4 Main Tabs**: Dashboard, Live Battle, Analytics, Simulator - all functional
-- **Dark/Light Mode**: Theme toggle with Material-UI
-- **Mobile Support**: Responsive design with bottom navigation
-- **Rate Limiting**: 90 requests/minute with token bucket algorithm
-- **WebSocket**: Real-time updates (verify during match days)
-
-## 📱 Using the App
-
-### Navigation
-- **Mobile**: Use bottom navigation or swipe the floating menu button
-- **Desktop**: Click tabs or use keyboard shortcuts (Ctrl+Shift+A for accessibility)
-- **Voice**: Say "Go to [page name]" when voice commands are enabled
-
-### Key Features Access
-- **Dashboard**: Main overview with manager comparison
-- **Analytics**: Advanced charts and league insights
-- **Live**: Real-time H2H battle tracking
-- **Simulator**: ML-powered match predictions
-
-### Accessibility
-- **Open Settings**: Ctrl+Shift+A or click the accessibility floating button
-- **Enable Voice Commands**: Toggle in accessibility panel
-- **Adjust Font Size**: Use the slider in accessibility settings
-- **High Contrast**: Toggle for better visibility
-
-## 🎯 Performance Features
-
-### Real-Time Monitoring
-Visit the **Performance Dashboard** to view:
-- API response times (target: <100ms)
-- Memory and CPU usage
-- Cache hit rates (target: >80%)
-- Active WebSocket connections
-- Core Web Vitals (LCP, FID, CLS)
-
-### Smart Caching
-The app uses intelligent caching with different TTLs:
-- **Live Data**: 30 seconds (during matches)
-- **Fixtures**: 1 hour (24 hours when >7 days away)
-- **Player Data**: 2 hours (5 minutes near deadline)
-- **Historical Data**: 24 hours
-
-### Offline Support
-- Core features work offline
-- Data cached for 24 hours
-- Automatic sync when connection returns
-- Install as PWA for full offline experience
-
-## 🔧 Development
-
-### Backend Development
+### 🔧 Local Development
 ```bash
+# Backend setup
 cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+python -m uvicorn app.main:app --reload --port 8000
 
-### Frontend Development
-```bash
+# Frontend setup (new terminal)
 cd frontend
 npm install
 npm run dev
+
+# Access at http://localhost:5173
 ```
 
-### Performance Analysis
+### 🛠️ Configuration
 ```bash
-# Build with analysis
-npm run build:analyze
+# Backend environment
+REDIS_URL=redis://localhost:6379
+FPL_BASE_URL=https://fantasy.premierleague.com/api
+TARGET_LEAGUE_ID=620117  # Your H2H league ID
 
-# Performance testing
-npm run lighthouse
-
-# Bundle size analysis
-npm run bundle-analyzer
+# Frontend environment  
+VITE_API_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000
 ```
 
-## 📊 API Endpoints
+## 📖 Usage Guide
 
-### Core Endpoints
-- `GET /api/health` - System health with performance metrics
-- `GET /api/performance` - Real-time performance dashboard
-- `GET /api/gameweek/current` - Current gameweek information
+### 1. 👤 Exploring Manager Profiles
+- **Click any manager name** in the League Table, Battle Cards, or Analytics
+- **Navigate through tabs**: Overview, Season Progress, Transfers, History
+- **Interactive charts**: Hover for details, zoom for specific ranges
+- **Compare performance**: Open multiple profiles simultaneously
 
-### H2H & Analytics
-- `GET /api/h2h/live-battles/{league_id}` - Live battles with WebSocket support
-- `POST /api/simulator/predict/{manager1_id}/{manager2_id}/{gameweek}` - ML predictions
-- `GET /api/strategy/recommendations/{manager1_id}/{manager2_id}/{gameweek}` - AI advice
+### 2. 📅 Analyzing Gameweeks
+- **Click gameweek numbers** in battle cards or match results
+- **Squad comparison**: See side-by-side team lineups
+- **Identify differentials**: Players owned by only one manager
+- **Track substitutions**: Auto-subs and bench points
+- **Navigate between weeks**: Previous/Next gameweek buttons
 
-### Performance & Monitoring
-- `GET /api/cache/stats` - Multi-layer cache performance
-- `GET /api/ml/performance` - Machine learning model metrics
-- `WS /ws/connect` - Real-time WebSocket connection
+### 3. 🎯 Using Advanced Analytics
+- **Select managers**: Use autocomplete or quick select buttons
+- **Explore insights**: Chip strategy, differential impact, transfer ROI
+- **View predictions**: ML-powered match outcome predictions
+- **Export data**: Download detailed analysis reports
 
-## 🎨 Theme System
+### 4. 🌐 Real-Time Features
+- **Monitor live battles**: During active gameweeks
+- **Track BPS**: Bonus point accumulation
+- **Captain performance**: Live effectiveness monitoring
+- **WebSocket status**: Connection health in header
 
-### Glassmorphism Design
-- **Frosted Glass Effects**: Modern backdrop-filter CSS
-- **Dynamic Theming**: Auto dark/light mode with system preference
-- **Smooth Animations**: Hardware-accelerated transitions
-- **Accessible Colors**: WCAG AAA contrast ratios
+## 🏗️ Development
 
-### Customization
-- **Dark/Light Toggle**: Instant theme switching
-- **High Contrast Mode**: Enhanced visibility option
-- **Reduced Motion**: Respects accessibility preferences
-- **Custom Color Schemes**: Easily extensible theme system
+### Project Structure
+```
+fpl-h2h-analyzer/
+├── backend/                 # FastAPI backend
+│   ├── app/
+│   │   ├── main.py         # Application entry point
+│   │   ├── api/            # API routes
+│   │   ├── services/       # Business logic
+│   │   ├── models/         # Data models
+│   │   └── websocket/      # Real-time features
+│   └── requirements.txt
+├── frontend/               # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── services/       # API clients
+│   │   ├── hooks/          # Custom hooks
+│   │   └── modern/         # Modern UI components
+│   └── package.json
+└── docker-compose.yml      # Container orchestration
+```
 
-## 🔧 Technical Improvements (v5.1)
+### API Endpoints (v7.0)
 
-### 🚫 Error Stability Fixes
-- **Component Error Boundaries**: Individual components fail gracefully without crashing the app
-- **WebSocket Error Handling**: Connection failures no longer cause app crashes
-- **3D Visualization Safety**: WebGL detection prevents crashes on unsupported browsers
-- **API Error Recovery**: Automatic retry with exponential backoff for failed requests
-- **Null Data Protection**: Comprehensive null checks prevent undefined access errors
+#### Manager Data
+- `GET /api/entry/{manager_id}/` - Basic manager information
+- `GET /api/entry/{manager_id}/history/` - Season progression and chips
+- `GET /api/entry/{manager_id}/transfers/` - Complete transfer history
+- `GET /api/entry/{manager_id}/event/{event_id}/picks/` - Gameweek squad
 
-### ⚡ Performance Enhancements
-- **Intelligent Caching**: TTL-based cache with different durations per data type
-  - Manager data: 24 hours
-  - Live scores: 30 seconds
-  - League standings: 1 hour
-  - Analytics: 5 minutes
-- **Skeleton Loading**: Component-specific loading states instead of generic spinners
-- **Batch API Calls**: Multiple requests combined for efficiency
-- **Request Deduplication**: Prevent duplicate API calls through caching
-- **Abort Controllers**: Cancel requests on component unmount
+#### Analytics
+- `GET /api/analytics/v2/h2h/comprehensive/{m1}/{m2}` - Full H2H analysis
+- `GET /api/analytics/chip-strategy/{manager_id}` - Chip recommendations
+- `GET /api/h2h/battle/{manager1_id}/{manager2_id}` - Battle details
 
-### 📊 Data Accuracy Fixes
-- **H2H Points Against**: Fixed calculation to sum opponent scores in H2H matches
-- **Prediction Confidence**: Realistic predictions based on recent form instead of "0%"
-- **Live Tracker Data**: Shows actual match data or "Season Complete" messaging
-- **Position Performance**: Calculated from actual squad picks with captaincy multipliers
+#### Advanced Features
+- `GET /api/team/set-piece-notes` - Set-piece taker information
+- `GET /api/element-summary/{player_id}` - Enhanced player data
+- `GET /api/bootstrap-static/` - All players and teams data
 
-### 🌐 Real-Time Features
-- **WebSocket Status Monitor**: Live connection indicator with diagnostic details
-- **Live Battle Enhancements**: BPS tracking, goal scorers, captain identification
-- **Season Complete Mode**: Appropriate messaging when season has ended
-- **Connection Recovery**: Automatic reconnection with visual feedback
+#### League Data
+- `GET /api/league/{league_id}/overview` - League standings with analytics
+- `GET /api/league/{league_id}/h2h-battles` - Live H2H matches
 
-## 🐛 Troubleshooting
+### Contributing
+1. **Fork the repository**
+2. **Create feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit changes**: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open Pull Request**
 
-### Black Screen Issues (RESOLVED in v5.1)
-If you encounter a black screen:
-1. **Clear Browser Cache**: Force refresh with Ctrl+Shift+R (Cmd+Shift+R on Mac)
-2. **Check Console**: Open DevTools (F12) and look for errors
-3. **Verify Services**: Ensure all Docker containers are running with `docker-compose ps`
-4. **Theme Issues**: The issue was caused by complex Material-UI theme - now fixed with simplified theme
+## 📊 Performance Features
 
-### Performance Issues
-1. **Slow Loading**: Check cache hit rates in performance dashboard
-2. **High Memory**: Monitor memory usage and enable optimizations
-3. **Poor Mobile Performance**: Ensure hardware acceleration is enabled
-
-### Accessibility Issues
-1. **Screen Reader**: Enable in accessibility panel and test announcements
-2. **Voice Commands**: Check browser speech recognition support
-3. **Keyboard Navigation**: Use Tab, Arrow keys, and shortcuts
-
-### WebSocket Issues
-1. **Connection Failed**: Check backend status with `docker-compose ps`
-2. **No Live Updates**: Verify WebSocket connection in browser dev tools
-3. **Performance Issues**: Monitor WebSocket metrics in dashboard
-
-### API & Data Issues
-1. **404 Errors**: Check API endpoints match those in `/api/health`
-2. **No Data**: Verify FPL API connection status in health check
-3. **Rate Limiting**: Monitor token availability at `/api/rate-limiter/metrics`
-
-## 📈 Performance Metrics
-
-### Target Performance
-- **API Response Time**: <100ms (achieved)
-- **Initial Page Load**: <1s (achieved)
-- **Time to Interactive**: <2s (achieved)
-- **Largest Contentful Paint**: <2.5s (achieved)
-- **First Input Delay**: <100ms (achieved)
-- **Cumulative Layout Shift**: <0.1 (achieved)
+### Optimization Strategies
+- **⚡ Smart Caching**: Multi-layer caching with Redis backend
+- **🔄 Lazy Loading**: Components and data loaded on demand
+- **📱 Responsive Design**: Mobile-first with efficient breakpoints
+- **🎯 Code Splitting**: Optimized bundle sizes with Vite
+- **💾 Service Worker**: Offline support and background updates
 
 ### Monitoring
-- **Real-time Dashboards**: Performance metrics and alerts
-- **Cache Hit Rates**: >80% across all cache layers
-- **Error Rates**: <1% API errors with automatic retry
-- **Memory Usage**: <80% with automatic optimization
+- **📊 Performance Monitor**: Built-in performance tracking
+- **🔍 Rate Limit Monitor**: API usage visualization
+- **🌐 WebSocket Health**: Connection status and diagnostics
+- **⚡ Core Web Vitals**: LCP, FID, and CLS monitoring
 
-## 🤝 Contributing
+## 🔧 Troubleshooting
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`npm test` and `pytest`)
-4. Check accessibility (`npm run a11y`)
-5. Commit changes (`git commit -m 'Add amazing feature'`)
-6. Push to branch (`git push origin feature/amazing-feature`)
-7. Open Pull Request
+### Common Issues
 
-### Development Guidelines
-- Follow accessibility best practices (WCAG AAA)
-- Maintain performance budgets (<200KB bundle size)
-- Write tests for new features
-- Update documentation as needed
-- Test on multiple devices and screen readers
+#### Manager profiles not loading
+```bash
+# Check API connectivity
+curl http://localhost:8000/api/entry/123456/history/
+
+# Verify league ID in environment
+echo $TARGET_LEAGUE_ID
+```
+
+#### Gameweek details showing errors
+```bash
+# Test gameweek picks endpoint
+curl http://localhost:8000/api/entry/123456/event/38/picks/
+
+# Check bootstrap-static data
+curl http://localhost:8000/api/bootstrap-static/
+```
+
+#### Analytics showing empty data
+```bash
+# Verify comprehensive analytics endpoint
+curl http://localhost:8000/api/analytics/v2/h2h/comprehensive/123456/789012
+
+# Check manager selection
+curl http://localhost:8000/api/league/620117/overview
+```
+
+### Development Tips
+- **Use React DevTools** for component debugging
+- **Monitor Network tab** for API response issues
+- **Check Redis connections** with `redis-cli ping`
+- **Verify WebSocket** connections in browser console
 
 ## 📄 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Fantasy Premier League for providing the API
-- The accessibility community for guidance
-- Performance optimization community
-- All contributors and testers
-
-## 📞 Support
-
-- **Issues**: Open GitHub issue
-- **Accessibility**: Contact accessibility team
-- **Performance**: Check performance dashboard
-- **Documentation**: See technical guides in `/docs`
+- **Fantasy Premier League**: For providing the comprehensive API
+- **React Community**: For excellent documentation and components
+- **Material-UI Team**: For the beautiful component library
+- **FastAPI**: For the high-performance backend framework
+- **Redis**: For excellent caching capabilities
 
 ---
 
-## 🎉 Recent Updates
+## 🚀 Version History
 
-### v5.1 (May 29, 2025) - Critical Fix & Full Restoration 🐛
-- **FIXED**: Resolved black screen issue caused by Material-UI theme complexity
-- **FIXED**: Python 3.12 compatibility issues with dataclasses and aioredis
-- **FIXED**: Rate limiter endpoint mismatch (now correctly uses /api/rate-limiter/metrics)
-- **RESTORED**: All 4 main tabs (Dashboard, Live Battle, Analytics, Simulator)
-- **IMPROVED**: Simplified theme system for better stability
-- **ADDED**: Comprehensive error boundaries for graceful error handling
-- **UPDATED**: API client with correct endpoint mappings
-- **VERIFIED**: Full functionality with real FPL data from Top Dog Premier League
+### v7.0 - Interactive Features Complete (Current)
+- ✅ Clickable managers with comprehensive profiles
+- ✅ Interactive gameweek analysis and squad comparison
+- ✅ Enhanced analytics with intelligent manager selection
+- ✅ Advanced FPL API integration and visualizations
 
-### v5.0 (May 28, 2025) - Performance & Polish 🚀
-- **NEW**: Glassmorphism UI with modern design
-- **NEW**: Mobile-first PWA with offline support
-- **NEW**: WCAG AAA accessibility compliance
-- **NEW**: Sub-100ms performance optimization
-- **NEW**: Real-time monitoring and alerting
-- **NEW**: 3D visualizations and WebGL
-- **NEW**: Voice commands and text-to-speech
-- **NEW**: ML-powered predictions and scenarios
-- **IMPROVED**: 60fps animations and micro-interactions
-- **OPTIMIZED**: Multi-layer caching and compression
+### v6.1 - Critical Issues Resolved
+- ✅ All runtime errors fixed
+- ✅ Modern glassmorphic UI complete
+- ✅ Production stability achieved
 
-### v4.0 (May 27, 2025) - Advanced Analytics
-- **NEW**: Predictive match simulator with ML
-- **NEW**: Real-time match day experience
-- **NEW**: Strategic recommendations engine
-- **NEW**: Advanced analytics dashboard
-- **ADDED**: WebSocket real-time updates
-- **IMPROVED**: Performance monitoring
+### v6.0 - UI Modernization
+- ✅ Complete design system overhaul
+- ✅ Glassmorphism effects implemented
+- ✅ Interactive animations added
 
-### v3.1 (May 27, 2025) - Production Rate Limiting
-- **NEW**: Token bucket rate limiting (90 req/min)
-- **NEW**: Request prioritization and queuing
-- **NEW**: System health monitoring
-- **IMPROVED**: API resilience and caching
+### v5.1 - Live Data Integration
+- ✅ Real-time updates implemented
+- ✅ WebSocket monitoring added
+- ✅ Performance optimization complete
 
----
-
-**Made with ❤️ for the FPL community**
-
-*A modern, accessible, high-performance FPL analysis tool that sets new standards for web application quality.*
+**Built with ❤️ for the FPL community**

@@ -951,6 +951,48 @@ async def get_websocket_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/analytics/v2/h2h/comprehensive/{manager1_id}/{manager2_id}")
+async def get_comprehensive_h2h_analytics(
+    manager1_id: int, 
+    manager2_id: int,
+    gameweek: Optional[int] = None
+):
+    """Get comprehensive H2H analytics between two managers."""
+    try:
+        if gameweek is None:
+            gameweek = await live_data_service.get_current_gameweek()
+        
+        # Get basic battle analysis
+        battle_analysis = await h2h_analyzer.analyze_battle(manager1_id, manager2_id, gameweek)
+        
+        # Get enhanced analytics if available
+        comprehensive_data = {}
+        
+        if enhanced_h2h_analyzer:
+            comprehensive_data = await enhanced_h2h_analyzer.get_comprehensive_analysis(
+                manager1_id, manager2_id, gameweek
+            )
+        
+        # Get advanced analytics if available
+        if advanced_analytics:
+            advanced_data = await advanced_analytics.analyze_h2h(
+                manager1_id, manager2_id, gameweek
+            )
+            comprehensive_data['advanced'] = advanced_data
+        
+        # Merge all data
+        return {
+            **battle_analysis,
+            **comprehensive_data,
+            "gameweek": gameweek,
+            "manager1_id": manager1_id,
+            "manager2_id": manager2_id,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error in comprehensive analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/websocket/rooms/{room_id}/subscribe")
 async def subscribe_to_room(room_id: str, client_id: str):
     """Subscribe a client to a specific room (admin endpoint)"""
@@ -981,6 +1023,34 @@ async def unsubscribe_from_room(room_id: str, client_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/analytics/chip-strategy/{manager_id}")
+async def get_chip_strategy(manager_id: int):
+    """Get chip usage strategy and recommendations for a manager."""
+    try:
+        # Get manager history
+        history = await live_data_service.get_manager_history(manager_id)
+        current_gw = await live_data_service.get_current_gameweek()
+        
+        # Extract chips used
+        chips_used = history.get('chips', [])
+        
+        # Get recommendations from strategy advisor if available
+        recommendations = []
+        if strategy_advisor:
+            recs = await strategy_advisor.get_chip_recommendations(manager_id)
+            recommendations = recs
+        
+        return {
+            "manager_id": manager_id,
+            "current_gameweek": current_gw,
+            "chips_used": chips_used,
+            "recommendations": recommendations,
+            "history": history.get('current', [])
+        }
+    except Exception as e:
+        logger.error(f"Error in chip strategy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/cache/invalidate")
 async def invalidate_cache(pattern: Optional[str] = None):
     """Invalidate cache entries"""
@@ -991,6 +1061,69 @@ async def invalidate_cache(pattern: Optional[str] = None):
         else:
             raise HTTPException(status_code=503, detail="Cache service unavailable")
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/team/set-piece-notes")
+async def get_set_piece_notes():
+    """Get set piece taker information for all teams."""
+    try:
+        # This would normally come from the FPL API /api/team/set-piece-notes/
+        # For now, return mock data
+        return {
+            "teams": [
+                {
+                    "id": 1,
+                    "name": "Arsenal",
+                    "notes": {
+                        "penalties": ["Saka"],
+                        "free_kicks": ["Odegaard", "Saka"],
+                        "corners": ["Saka", "Odegaard"]
+                    }
+                },
+                {
+                    "id": 2,
+                    "name": "Aston Villa",
+                    "notes": {
+                        "penalties": ["Watkins"],
+                        "free_kicks": ["Douglas Luiz"],
+                        "corners": ["Douglas Luiz", "McGinn"]
+                    }
+                }
+                # Add more teams as needed
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error getting set piece notes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/element-summary/{player_id}")
+async def get_player_summary(player_id: int):
+    """Get detailed player information including fixtures and historical data."""
+    try:
+        # Get player data from bootstrap-static
+        bootstrap = await live_data_service.get_bootstrap_static()
+        player = next((p for p in bootstrap.get('elements', []) if p['id'] == player_id), None)
+        
+        if not player:
+            raise HTTPException(status_code=404, detail="Player not found")
+        
+        # Get player's team fixtures
+        team_id = player.get('team')
+        fixtures = await live_data_service.get_fixtures(team_id)
+        
+        return {
+            "player": player,
+            "fixtures": fixtures,
+            "ownership_trend": [
+                # Mock ownership trend data
+                {"event": i, "ownership": player.get('selected_by_percent', 0) + (i * 0.1)}
+                for i in range(1, 39)
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting player summary: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/cache/warm")

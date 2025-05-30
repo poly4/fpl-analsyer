@@ -33,6 +33,8 @@ import PredictionGraphs from './analytics/PredictionGraphs';
 import TransferROI from './analytics/TransferROI';
 import LiveMatchTracker from './analytics/LiveMatchTracker';
 import ChipStrategy from './analytics/ChipStrategy';
+import AnalyticsManagerSelector from './AnalyticsManagerSelector';
+import { GlassCard } from './modern';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -66,9 +68,9 @@ function AnalyticsDashboard() {
     setTabValue(newValue);
   };
 
-  const fetchAnalyticsData = async () => {
-    if (!manager1Id || !manager2Id) {
-      setError('Please enter both manager IDs');
+  const fetchAnalyticsData = async (m1Id = manager1Id, m2Id = manager2Id) => {
+    if (!m1Id || !m2Id) {
+      setError('Please select both managers');
       return;
     }
 
@@ -77,7 +79,7 @@ function AnalyticsDashboard() {
     
     try {
       const response = await axios.get(
-        `/api/analytics/v2/h2h/comprehensive/${manager1Id}/${manager2Id}`,
+        `/api/analytics/v2/h2h/comprehensive/${m1Id}/${m2Id}`,
         { params: { gameweek } }
       );
       setAnalyticsData(response.data);
@@ -139,10 +141,19 @@ function AnalyticsDashboard() {
     }
   ];
 
+  const handleManagerSelection = (m1Id, m2Id) => {
+    setManager1Id(m1Id);
+    setManager2Id(m2Id);
+    fetchAnalyticsData(m1Id, m2Id);
+  };
+
   return (
     <Box sx={{ width: '100%', p: { xs: 1, sm: 2, md: 3 } }}>
+      {/* Manager Selector */}
+      <AnalyticsManagerSelector onSelectionChange={handleManagerSelection} />
+      
       {/* Header */}
-      <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
+      <GlassCard sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
         <Typography 
           variant="h4" 
           gutterBottom 
@@ -160,26 +171,6 @@ function AnalyticsDashboard() {
         
         {/* Input Controls */}
         <Grid container spacing={2} alignItems="center" sx={{ mt: 2 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              label="Manager 1 ID"
-              value={manager1Id}
-              onChange={(e) => setManager1Id(e.target.value)}
-              fullWidth
-              variant="outlined"
-              size="small"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              label="Manager 2 ID"
-              value={manager2Id}
-              onChange={(e) => setManager2Id(e.target.value)}
-              fullWidth
-              variant="outlined"
-              size="small"
-            />
-          </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <TextField
               label="Gameweek"

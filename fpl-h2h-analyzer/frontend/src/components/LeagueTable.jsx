@@ -19,6 +19,7 @@ import { styled } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EmojiEvents, TrendingUp, TrendingDown, Remove } from '@mui/icons-material';
 import { GlassCard, AnimatedNumber, glassMixins } from './modern';
+import ManagerProfile from './ManagerProfile';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   '&.MuiTableCell-head': {
@@ -175,6 +176,8 @@ function LeagueTable({ leagueId = 620117 }) {
   const [leagueInfo, setLeagueInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [openManagerProfile, setOpenManagerProfile] = useState(false);
 
   useEffect(() => {
     fetchLeagueData();
@@ -342,7 +345,22 @@ function LeagueTable({ leagueId = 620117 }) {
                       </Box>
                     </StyledTableCell>
                     <StyledTableCell>
-                      <Box display="flex" alignItems="center">
+                      <Box 
+                        display="flex" 
+                        alignItems="center"
+                        sx={{ 
+                          cursor: 'pointer',
+                          '&:hover': {
+                            opacity: 0.8,
+                            transform: 'scale(1.02)',
+                            transition: 'all 0.2s ease'
+                          }
+                        }}
+                        onClick={() => {
+                          setSelectedManager({ id: team.entry, name: team.player_name });
+                          setOpenManagerProfile(true);
+                        }}
+                      >
                         <Badge
                           overlap="circular"
                           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
@@ -474,6 +492,19 @@ function LeagueTable({ leagueId = 620117 }) {
             </Typography>
           </Box>
         </GlassCard>
+      )}
+
+      {/* Manager Profile Dialog */}
+      {selectedManager && (
+        <ManagerProfile
+          managerId={selectedManager.id}
+          managerName={selectedManager.name}
+          open={openManagerProfile}
+          onClose={() => {
+            setOpenManagerProfile(false);
+            setSelectedManager(null);
+          }}
+        />
       )}
     </motion.div>
   );

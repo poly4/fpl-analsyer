@@ -10,6 +10,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useH2HBattle } from '../hooks/useWebSocket';
 import axios from 'axios';
+import ManagerProfile from './ManagerProfile';
+import GameweekDetail from './GameweekDetail';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -21,6 +23,10 @@ function EnhancedBattleCard({ battle }) {
   const [expanded, setExpanded] = useState(false);
   const [analytics, setAnalytics] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [openManagerProfile, setOpenManagerProfile] = useState(false);
+  const [selectedGameweek, setSelectedGameweek] = useState(null);
+  const [openGameweekDetail, setOpenGameweekDetail] = useState(false);
   
   // Use WebSocket hook for real-time updates
   const { battleData, lastUpdate, updateCount, isConnected } = useH2HBattle(
@@ -267,6 +273,24 @@ function EnhancedBattleCard({ battle }) {
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
           <Box display="flex" gap={0.5}>
+            <Chip 
+              label={`GW${battle.gameweek || battle.gw || '38'}`}
+              size="small" 
+              color="primary"
+              variant="outlined"
+              onClick={() => {
+                const gw = battle.gameweek || battle.gw || 38;
+                setSelectedGameweek(gw);
+                setOpenGameweekDetail(true);
+              }}
+              sx={{ 
+                cursor: 'pointer',
+                '&:hover': { 
+                  bgcolor: 'primary.main',
+                  color: 'white'
+                }
+              }}
+            />
             {battle.completed ? (
               <Chip 
                 icon={<CheckCircle />} 
@@ -335,7 +359,22 @@ function EnhancedBattleCard({ battle }) {
         
         <Box display="flex" justifyContent="space-between" alignItems="center" gap={2}>
           <Box flex={1} textAlign="center">
-            <Typography variant="subtitle2" noWrap title={battle.manager1}>
+            <Typography 
+              variant="subtitle2" 
+              noWrap 
+              title={battle.manager1}
+              sx={{ 
+                cursor: 'pointer',
+                '&:hover': { 
+                  color: 'primary.main',
+                  textDecoration: 'underline'
+                }
+              }}
+              onClick={() => {
+                setSelectedManager({ id: battle.manager1_id, name: battle.manager1 });
+                setOpenManagerProfile(true);
+              }}
+            >
               {battle.manager1}
             </Typography>
             <Typography variant="body2" color="text.secondary" noWrap title={battle.team1}>
@@ -377,7 +416,22 @@ function EnhancedBattleCard({ battle }) {
           <Divider orientation="vertical" flexItem />
           
           <Box flex={1} textAlign="center">
-            <Typography variant="subtitle2" noWrap title={battle.manager2}>
+            <Typography 
+              variant="subtitle2" 
+              noWrap 
+              title={battle.manager2}
+              sx={{ 
+                cursor: 'pointer',
+                '&:hover': { 
+                  color: 'primary.main',
+                  textDecoration: 'underline'
+                }
+              }}
+              onClick={() => {
+                setSelectedManager({ id: battle.manager2_id, name: battle.manager2 });
+                setOpenManagerProfile(true);
+              }}
+            >
               {battle.manager2}
             </Typography>
             <Typography variant="body2" color="text.secondary" noWrap title={battle.team2}>
@@ -456,6 +510,35 @@ function EnhancedBattleCard({ battle }) {
           )}
         </Collapse>
       </CardContent>
+      
+      {/* Manager Profile Dialog */}
+      {selectedManager && (
+        <ManagerProfile
+          managerId={selectedManager.id}
+          managerName={selectedManager.name}
+          open={openManagerProfile}
+          onClose={() => {
+            setOpenManagerProfile(false);
+            setSelectedManager(null);
+          }}
+        />
+      )}
+
+      {/* Gameweek Detail Dialog */}
+      {selectedGameweek && (
+        <GameweekDetail
+          manager1Id={battle.manager1_id}
+          manager2Id={battle.manager2_id}
+          manager1Name={battle.manager1}
+          manager2Name={battle.manager2}
+          gameweek={selectedGameweek}
+          open={openGameweekDetail}
+          onClose={() => {
+            setOpenGameweekDetail(false);
+            setSelectedGameweek(null);
+          }}
+        />
+      )}
     </Card>
   );
 }
