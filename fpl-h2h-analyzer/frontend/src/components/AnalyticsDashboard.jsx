@@ -225,9 +225,9 @@ function AnalyticsDashboard() {
                     Predicted Winner
                   </Typography>
                   <Typography variant="h5">
-                    {analyticsData.prediction?.manager1_win_prob > analyticsData.prediction?.manager2_win_prob 
+                    {(analyticsData.prediction?.win_probabilities?.manager1 > analyticsData.prediction?.win_probabilities?.manager2)
                       ? 'Manager 1' 
-                      : analyticsData.prediction?.manager2_win_prob > analyticsData.prediction?.manager1_win_prob 
+                      : (analyticsData.prediction?.win_probabilities?.manager2 > analyticsData.prediction?.win_probabilities?.manager1)
                       ? 'Manager 2' 
                       : 'Draw'}
                   </Typography>
@@ -241,7 +241,7 @@ function AnalyticsDashboard() {
                     Confidence
                   </Typography>
                   <Typography variant="h5">
-                    {Math.round((analyticsData.prediction?.confidence || 0) * 100)}%
+                    {Math.round((analyticsData.prediction?.confidence_level || 0) * 100)}%
                   </Typography>
                 </CardContent>
               </Card>
@@ -271,6 +271,42 @@ function AnalyticsDashboard() {
               </Card>
             </Grid>
           </Grid>
+
+          {/* Enhanced Prediction Scores */}
+          {analyticsData.prediction?.expected_scores && (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Manager 1 Expected Points
+                    </Typography>
+                    <Typography variant="h4" color="primary">
+                      {analyticsData.prediction.expected_scores.manager1?.toFixed(1) || '0.0'}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Win Probability: {(analyticsData.prediction.win_probabilities?.manager1 * 100)?.toFixed(1) || '0'}%
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Manager 2 Expected Points
+                    </Typography>
+                    <Typography variant="h4" color="secondary">
+                      {analyticsData.prediction.expected_scores.manager2?.toFixed(1) || '0.0'}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Win Probability: {(analyticsData.prediction.win_probabilities?.manager2 * 100)?.toFixed(1) || '0'}%
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
         )}
       </Paper>
 

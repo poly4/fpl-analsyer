@@ -57,17 +57,17 @@ function PredictionGraphs({ data }) {
   const outcomeData = [
     { 
       name: 'Manager 1 Win', 
-      value: (prediction.manager1_win_prob || 0) * 100, 
+      value: (prediction.win_probabilities?.manager1 || 0) * 100, 
       fill: '#1976d2' 
     },
     { 
       name: 'Draw', 
-      value: (prediction.draw_prob || 0) * 100, 
+      value: (prediction.win_probabilities?.draw || 0) * 100, 
       fill: '#757575' 
     },
     { 
       name: 'Manager 2 Win', 
-      value: (prediction.manager2_win_prob || 0) * 100, 
+      value: (prediction.win_probabilities?.manager2 || 0) * 100, 
       fill: '#d32f2f' 
     }
   ];
@@ -103,10 +103,11 @@ function PredictionGraphs({ data }) {
   };
 
   const getWinnerName = () => {
-    if (prediction.manager1_win_prob > prediction.manager2_win_prob) {
-      return prediction.manager1_win_prob > (prediction.draw_prob || 0) ? 'Manager 1' : 'Draw';
+    const winProbs = prediction.win_probabilities || {};
+    if (winProbs.manager1 > winProbs.manager2) {
+      return winProbs.manager1 > (winProbs.draw || 0) ? 'Manager 1' : 'Draw';
     } else {
-      return prediction.manager2_win_prob > (prediction.draw_prob || 0) ? 'Manager 2' : 'Draw';
+      return winProbs.manager2 > (winProbs.draw || 0) ? 'Manager 2' : 'Draw';
     }
   };
 
@@ -125,11 +126,11 @@ function PredictionGraphs({ data }) {
                   {getWinnerName()}
                 </Typography>
                 <Chip 
-                  label={`${Math.max(
-                    prediction.manager1_win_prob || 0,
-                    prediction.manager2_win_prob || 0,
-                    prediction.draw_prob || 0
-                  ).toFixed(1)}% chance`}
+                  label={`${(Math.max(
+                    prediction.win_probabilities?.manager1 || 0,
+                    prediction.win_probabilities?.manager2 || 0,
+                    prediction.win_probabilities?.draw || 0
+                  ) * 100).toFixed(1)}% chance`}
                   color="primary"
                 />
               </CardContent>
